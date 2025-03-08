@@ -1,0 +1,103 @@
+services:
+  # Somehow the service key here needs to be `minio` to be compatible with mlflow_server boto call...
+  minio:
+    restart: always
+    image: minio/minio@sha256:2c8ac2a6255a2fa7b73a0a3647314c07121432b8ca1ce4ed8bfe31ca8495d7f7
+    container_name: mlflow_s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ':9001' --address ':9000'
+    environment:
+      - MINIO_ROOT_USER=${AWS_ACCESS_KEY_ID}
+      - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./data/mlflow/minio_data:/data
+
+  mlflow_mc:
+    image: minio/mc@sha256:3adae97df95c66b301b25ca7b38a9d7cfbd93b8f0652687331d552cd046dbfc1
+    depends_on:
+      - minio
+    container_name: mlflow_mc
+    env_file:
+      - .env
+    entrypoint: >
+      /bin/sh -c "
+      /tmp/wait-for-it.sh minio:9000 &&
+      /usr/bin/mc alias set minio http://minio:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} &&
+      /usr/bin/mc mb minio/mlflow &&
+      /usr/bin/mc mb minio/data &&
+      /usr/bin/mc mb minio/runs;
+      exit 0;
+      "
+    volumes:
+      - ./mlflow/wait-for-it.sh:/tmp/wait-for-it.sh
+
+  mlflow_db:
+    restart: always
+    image: mysql/mysql-server@sha256:5b40d96b11333570143d98d3a74100fefadb9abb17b27a95dbc9ad33544ec142
+    container_name: mlflow_db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./data/mlflow/dbdata:/var/lib/mysql
+
+  mlflow_server:
+    restart: always
+    # Need to build MLflow because the official Docker image does not come with pymysql installed
+    build: ./mlflow
+    image: mlflow_server
+    container_name: mlflow_server
+    depends_on:
+      - mlflow_mc
+      - mlflow_db
+    ports:
+      - "5002:5000"
+    environment:
+      # Somehow the MLFLOW_S3_ENDPOINT_URL must be minio instead of a custom name like mlflow_s3 for the service because if the endpoint is not `minio` then boto3 would raise error
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    command: >
+      mlflow server
+        --backend-store-uri mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mlflow_db:3306/${MYSQL_DATABASE}
+        --artifacts-destination s3://mlflow
+        --serve-artifacts
+        --host 0.0.0.0
+        --port 5000
+
+  kv_store:
+    # Redis is limited to 7.2-bookworm due to licencing change
+    # https://redis.io/blog/redis-adopts-dual-source-available-licensing/
+    image: redis:7.2-bookworm
+    container_name: kv_store
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ./data/redis:/data
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./data/qdrant_storage:/qdrant/storage:z
+    restart: always
+
+networks:
+  seq-model:
+    driver: bridge

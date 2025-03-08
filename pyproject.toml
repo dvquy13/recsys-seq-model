@@ -1,0 +1,41 @@
+[project]
+name = "1-seq-model"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "loguru>=0.7.3",
+    "numpy<2.0",
+    "pandas>=2.2.3",
+    "pydantic>=2.10.6",
+    "python-dotenv>=1.0.1",
+    "redis>=5.2.1",
+]
+
+[tool.uv]
+# Setting package = true would install the package inside src/ folder
+# After that we can use `import ann` if there is a module src/ann.py
+# This is not the same as Poetry `packages = [{ include = "src" }]`
+# which would install the package at the project level hence allowing
+# us to be able to use `import src.ann` instead.
+# Since now our code is structured towards `import src.ann` use case,
+# We set uv `package = false` and use `export PYTHONPATH=$ROOT_DIR` instead.
+package = false
+
+[dependency-groups]
+development = [
+    "datasets>=3.3.2",
+    "jupyterlab>=4.3.5",
+    "tensorboard>=2.19.0",
+]
+ml = [
+    "evidently>=0.6.5",
+    "lightning>=2.5.0.post0",
+    "mlflow>=2.20.3",
+    "torch>=2.6.0",
+]
+pipeline = [
+    "ipykernel>=6.29.5",
+    "papermill>=2.6.0",
+]
