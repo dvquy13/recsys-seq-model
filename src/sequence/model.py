@@ -408,7 +408,9 @@ class TwoTowerSequenceModel(nn.Module):
         Returns:
             torch.Tensor: Predicted similarity score(s).
         """
-        return self.forward(user, item_sequence, target_item)
+        return (
+            self.forward(user, item_sequence, target_item) * 2 - 1
+        )  # Scale to [-1, 1] so that to avoid the min prediction value is 0.5 cause most of the time the forward output is 0
 
     def recommend(
         self,

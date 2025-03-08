@@ -71,7 +71,7 @@ class LitSequenceRatingPrediction(L.LightningModule):
 
         # Ensure shapes match by squeezing if necessary
         labels = batch["rating"].float()
-        predictions = self.model.forward(
+        predictions = self.model.predict(
             input_user_ids, input_item_sequences, input_item_ids
         ).view(labels.shape)
 
@@ -94,7 +94,7 @@ class LitSequenceRatingPrediction(L.LightningModule):
         input_item_sequences = batch["item_sequence"]
 
         labels = batch["rating"]
-        predictions = self.model.forward(
+        predictions = self.model.predict(
             input_user_ids, input_item_sequences, input_item_ids
         ).view(labels.shape)
 
@@ -159,6 +159,51 @@ class LitSequenceRatingPrediction(L.LightningModule):
         # Reset the metric for the next epoch
         self.val_roc_auc_metric.reset()
         self.val_pr_auc_metric.reset()
+
+    def on_train_epoch_end(self, outputs):
+        # Log model parameter weight statistics at the end of each training epoch.
+        self.log_model_weights()
+
+    def log_model_weights(self):
+        # Iterate over all model parameters and log basic statistics.
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                weight_data = param.data
+                min_val = weight_data.min().item()
+                max_val = weight_data.max().item()
+                mean_val = weight_data.mean().item()
+                std_val = weight_data.std().item()
+                logger.info(
+                    f"Weight stats for {name}: min={min_val:.4f}, max={max_val:.4f}, mean={mean_val:.4f}, std={std_val:.4f}"
+                )
+                self.log(
+                    f"weight_{name}_min",
+                    min_val,
+                    on_epoch=True,
+                    logger=True,
+                    sync_dist=True,
+                )
+                self.log(
+                    f"weight_{name}_max",
+                    max_val,
+                    on_epoch=True,
+                    logger=True,
+                    sync_dist=True,
+                )
+                self.log(
+                    f"weight_{name}_mean",
+                    mean_val,
+                    on_epoch=True,
+                    logger=True,
+                    sync_dist=True,
+                )
+                self.log(
+                    f"weight_{name}_std",
+                    std_val,
+                    on_epoch=True,
+                    logger=True,
+                    sync_dist=True,
+                )
 
     def on_fit_end(self):
         if self.checkpoint_callback:
