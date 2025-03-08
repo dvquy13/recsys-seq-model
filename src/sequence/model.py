@@ -14,7 +14,9 @@ class SequenceRatingPrediction(nn.Module):
         num_users (int): The number of unique users.
         num_items (int): The number of unique items.
         embedding_dim (int): The size of the embedding dimension for both user and item embeddings.
-        item_embedding (torch.nn.Embedding): pretrained item embeddings. Defaults to None.
+        pooling_method (str, optional): The pooling method to use for sequence encoding. Options are 'gru' or 'mean'.
+                                        Defaults to 'gru'.
+        item_embedding (torch.nn.Embedding, optional): Pretrained item embeddings. Defaults to None.
         dropout (float, optional): The dropout probability applied to the fully connected layers. Defaults to 0.2.
 
     Attributes:
@@ -22,6 +24,8 @@ class SequenceRatingPrediction(nn.Module):
         num_users (int): Number of unique users.
         item_embedding (nn.Embedding): Embedding layer for items, including a padding index for unknown items.
         user_embedding (nn.Embedding): Embedding layer for users.
+        gru (nn.GRU, optional): GRU layer to process item sequences (if pooling_method is 'gru').
+        pooling_method (str): The selected pooling method.
         fc_rating (nn.Sequential): Fully connected layers for predicting the rating from concatenated embeddings.
         relu (nn.ReLU): ReLU activation function.
         dropout (nn.Dropout): Dropout layer applied after activation.
@@ -29,19 +33,21 @@ class SequenceRatingPrediction(nn.Module):
 
     def __init__(
         self,
-        num_users,
-        num_items,
-        embedding_dim,
-        item_embedding=None,
-        dropout=0.2,
+        num_users: int,
+        num_items: int,
+        embedding_dim: int,
+        pooling_method: str = "mean",
+        item_embedding: nn.Embedding = None,
+        dropout: float = 0.2,
     ):
         super().__init__()
 
         self.num_items = num_items
         self.num_users = num_users
+        self.pooling_method = pooling_method.lower()
 
         self.item_embedding = item_embedding
-        if item_embedding is None:
+        if self.item_embedding is None:
             # Item embedding (Add 1 to num_items for the unknown item (-1 padding))
             self.item_embedding = nn.Embedding(
                 num_items + 1,  # One additional index for unknown/padding item
@@ -52,10 +58,16 @@ class SequenceRatingPrediction(nn.Module):
         # User embedding
         self.user_embedding = nn.Embedding(num_users, embedding_dim)
 
-        # GRU layer to process item sequences
-        self.gru = nn.GRU(
-            input_size=embedding_dim, hidden_size=embedding_dim, batch_first=True
-        )
+        if self.pooling_method == "gru":
+            # GRU layer to process item sequences
+            self.gru = nn.GRU(
+                input_size=embedding_dim, hidden_size=embedding_dim, batch_first=True
+            )
+        elif self.pooling_method == "mean":
+            # No additional layer is needed for mean pooling.
+            self.gru = None
+        else:
+            raise ValueError("Invalid pooling_method. Choose 'gru' or 'mean'.")
 
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=dropout)
@@ -83,7 +95,9 @@ class SequenceRatingPrediction(nn.Module):
             torch.Tensor: Predicted rating for each user-item pair.
         """
         # Replace -1 in input_seq and target_item with num_items (padding_idx)
-        padding_idx_tensor = torch.tensor(self.item_embedding.padding_idx)
+        padding_idx_tensor = torch.tensor(
+            self.item_embedding.padding_idx, device=input_seq.device
+        )
         input_seq = torch.where(input_seq == -1, padding_idx_tensor, input_seq)
         target_item = torch.where(target_item == -1, padding_idx_tensor, target_item)
 
@@ -92,13 +106,17 @@ class SequenceRatingPrediction(nn.Module):
             input_seq
         )  # Shape: [batch_size, seq_len, embedding_dim]
 
-        # GRU processing: output the hidden states and the final hidden state
-        _, hidden_state = self.gru(
-            embedded_seq
-        )  # hidden_state: [1, batch_size, embedding_dim]
-        gru_output = hidden_state.squeeze(
-            0
-        )  # Remove the sequence dimension -> [batch_size, embedding_dim]
+        if self.pooling_method == "gru":
+            # Process with GRU and use the final hidden state as the sequence representation
+            _, hidden_state = self.gru(
+                embedded_seq
+            )  # hidden_state: [1, batch_size, embedding_dim]
+            pooled_seq = hidden_state.squeeze(0)  # [batch_size, embedding_dim]
+        elif self.pooling_method == "mean":
+            # Mean pooling over the sequence dimension
+            pooled_seq = torch.mean(embedded_seq, dim=1)  # [batch_size, embedding_dim]
+        else:
+            raise ValueError("Invalid pooling_method. Choose 'gru' or 'mean'.")
 
         # Embed the target item
         embedded_target = self.item_embedding(target_item)
@@ -106,20 +124,19 @@ class SequenceRatingPrediction(nn.Module):
         # Embed the user IDs
         user_embeddings = self.user_embedding(user_ids)
 
-        # Concatenate the GRU output with the target item and user embeddings
+        # Concatenate the pooled sequence with the target item and user embeddings
         combined_embedding = torch.cat(
-            (gru_output, embedded_target, user_embeddings), dim=1
+            (pooled_seq, embedded_target, user_embeddings), dim=1
         )
 
-        # Project combined embedding to rating prediction
+        # Predict the rating
         output_ratings = self.fc_rating(combined_embedding)
 
         return output_ratings
 
     def predict(self, user, item_sequence, target_item):
         """
-        Predict the rating for a specific user and item sequence using the forward method
-        and applying a Sigmoid function to the output.
+        Predict the rating for a specific user and item sequence.
 
         Args:
             user (torch.Tensor): User ID.
@@ -129,8 +146,7 @@ class SequenceRatingPrediction(nn.Module):
         Returns:
             torch.Tensor: Predicted rating after applying Sigmoid activation.
         """
-        output_rating = self.forward(user, item_sequence, target_item)
-        return output_rating
+        return self.forward(user, item_sequence, target_item)
 
     def recommend(
         self,
