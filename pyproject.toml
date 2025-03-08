@@ -26,6 +26,7 @@ package = false
 [dependency-groups]
 development = [
     "datasets>=3.3.2",
+    "ipywidgets>=8.1.5",  # To correctly display tqdm progress bar in notebooks
     "jupyterlab>=4.3.5",
     "tensorboard>=2.19.0",
 ]
