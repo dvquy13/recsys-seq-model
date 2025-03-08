@@ -23,7 +23,7 @@ from src.eval.utils import create_label_df, create_rec_df, merge_recs_with_targe
 from src.id_mapper import IDMapper
 from src.viz import color_scheme
 
-from .model import SequenceRatingPrediction
+from .model import BaseSequenceRetriever
 
 warnings.filterwarnings(
     action="ignore",
@@ -32,10 +32,10 @@ warnings.filterwarnings(
 )
 
 
-class LitSequenceRatingPrediction(L.LightningModule):
+class LitSequenceRetriever(L.LightningModule):
     def __init__(
         self,
-        model: SequenceRatingPrediction,
+        model: BaseSequenceRetriever,
         learning_rate: float = 0.001,
         l2_reg: float = 1e-5,
         log_dir: str = ".",
@@ -178,7 +178,7 @@ class LitSequenceRatingPrediction(L.LightningModule):
             logger.info(
                 f"Loading best model from {self.checkpoint_callback.best_model_path}..."
             )
-            self.model = LitSequenceRatingPrediction.load_from_checkpoint(
+            self.model = LitSequenceRetriever.load_from_checkpoint(
                 self.checkpoint_callback.best_model_path, model=self.model
             ).model
         self.model = self.model.to(self._get_device())

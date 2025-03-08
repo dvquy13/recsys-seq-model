@@ -5,7 +5,7 @@ import mlflow
 from src.id_mapper import IDMapper
 
 
-class SequenceRatingPredictionInferenceWrapper(mlflow.pyfunc.PythonModel):
+class SequenceRetrieverInferenceWrapper(mlflow.pyfunc.PythonModel):
     def __init__(self, model):
         self.model = model
         self.model.eval()
