@@ -160,7 +160,7 @@ class LitSequenceRatingPrediction(L.LightningModule):
         self.val_roc_auc_metric.reset()
         self.val_pr_auc_metric.reset()
 
-    def on_train_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         # Log model parameter weight statistics at the end of each training epoch.
         self.log_model_weights()
 
@@ -173,35 +173,32 @@ class LitSequenceRatingPrediction(L.LightningModule):
                 max_val = weight_data.max().item()
                 mean_val = weight_data.mean().item()
                 std_val = weight_data.std().item()
-                logger.info(
-                    f"Weight stats for {name}: min={min_val:.4f}, max={max_val:.4f}, mean={mean_val:.4f}, std={std_val:.4f}"
-                )
                 self.log(
                     f"weight_{name}_min",
                     min_val,
                     on_epoch=True,
-                    logger=True,
+                    logger=False,
                     sync_dist=True,
                 )
                 self.log(
                     f"weight_{name}_max",
                     max_val,
                     on_epoch=True,
-                    logger=True,
+                    logger=False,
                     sync_dist=True,
                 )
                 self.log(
                     f"weight_{name}_mean",
                     mean_val,
                     on_epoch=True,
-                    logger=True,
+                    logger=False,
                     sync_dist=True,
                 )
                 self.log(
                     f"weight_{name}_std",
                     std_val,
                     on_epoch=True,
-                    logger=True,
+                    logger=False,
                     sync_dist=True,
                 )
 

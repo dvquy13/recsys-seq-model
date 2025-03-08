@@ -278,7 +278,7 @@ class TwoTowerSequenceModel(nn.Module):
         self.query_fc = nn.Sequential(
             nn.Linear(embedding_dim * 2, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
             nn.Dropout(dropout),
         )
 
@@ -286,7 +286,7 @@ class TwoTowerSequenceModel(nn.Module):
         self.candidate_fc = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
             nn.Dropout(dropout),
         )
 
@@ -408,9 +408,7 @@ class TwoTowerSequenceModel(nn.Module):
         Returns:
             torch.Tensor: Predicted similarity score(s).
         """
-        return (
-            self.forward(user, item_sequence, target_item) * 2 - 1
-        )  # Scale to [-1, 1] so that to avoid the min prediction value is 0.5 cause most of the time the forward output is 0
+        return self.forward(user, item_sequence, target_item)
 
     def recommend(
         self,
