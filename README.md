@@ -10,3 +10,6 @@
 - Run `export $(grep -v '^#' .env | xargs)` to load the variables
 - Run `uv sync --all-groups` to install the dependencies
 - Run `chmod +x mlflow/wait-for-it.sh` to wait for MLflow to start before creating objects
+
+# Train model
+Run notebooks in this sequence denoted by the notebook name prefix. For example: 000 -> 001 -> 002...

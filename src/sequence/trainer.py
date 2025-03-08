@@ -161,45 +161,16 @@ class LitSequenceRatingPrediction(L.LightningModule):
         self.val_pr_auc_metric.reset()
 
     def on_train_epoch_end(self):
-        # Log model parameter weight statistics at the end of each training epoch.
-        self.log_model_weights()
+        self.log_weight_norms(stage="train")
 
-    def log_model_weights(self):
-        # Iterate over all model parameters and log basic statistics.
+    def log_weight_norms(self, stage="train"):
         for name, param in self.model.named_parameters():
             if param.requires_grad:
-                weight_data = param.data
-                min_val = weight_data.min().item()
-                max_val = weight_data.max().item()
-                mean_val = weight_data.mean().item()
-                std_val = weight_data.std().item()
                 self.log(
-                    f"weight_{name}_min",
-                    min_val,
-                    on_epoch=True,
-                    logger=False,
-                    sync_dist=True,
-                )
-                self.log(
-                    f"weight_{name}_max",
-                    max_val,
-                    on_epoch=True,
-                    logger=False,
-                    sync_dist=True,
-                )
-                self.log(
-                    f"weight_{name}_mean",
-                    mean_val,
-                    on_epoch=True,
-                    logger=False,
-                    sync_dist=True,
-                )
-                self.log(
-                    f"weight_{name}_std",
-                    std_val,
-                    on_epoch=True,
-                    logger=False,
-                    sync_dist=True,
+                    f"{stage}_weight_norm_{name}",
+                    param.norm().item(),
+                    on_step=False,
+                    logger=True,
                 )
 
     def on_fit_end(self):
