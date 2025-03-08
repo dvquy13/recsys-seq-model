@@ -278,7 +278,6 @@ class TwoTowerSequenceModel(nn.Module):
         self.query_fc = nn.Sequential(
             nn.Linear(embedding_dim * 2, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
-            nn.LeakyReLU(0.1),
             nn.Dropout(dropout),
         )
 
@@ -286,7 +285,6 @@ class TwoTowerSequenceModel(nn.Module):
         self.candidate_fc = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
-            nn.LeakyReLU(0.1),
             nn.Dropout(dropout),
         )
 
