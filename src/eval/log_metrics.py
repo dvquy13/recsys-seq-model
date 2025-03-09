@@ -15,6 +15,7 @@ from evidently.pipeline.column_mapping import ColumnMapping
 from evidently.report import Report
 
 import mlflow
+from src.cfg import Config
 from src.viz import color_scheme
 
 warnings.filterwarnings(
@@ -24,33 +25,33 @@ warnings.filterwarnings(
 )
 
 
-def log_ranking_metrics(args, eval_df):
+def log_ranking_metrics(cfg: Config, eval_df):
     column_mapping = ColumnMapping(
         recommendations_type="rank",
-        target=args.rating_col,
+        target=cfg.data.rating_col,
         prediction="rec_ranking",
-        item_id=args.item_col,
-        user_id=args.user_col,
+        item_id=cfg.data.item_col,
+        user_id=cfg.data.user_col,
     )
 
     report = Report(
         metrics=[
-            NDCGKMetric(k=args.top_k_rerank),
-            RecallTopKMetric(k=args.top_k_retrieve),
-            PrecisionTopKMetric(k=args.top_k_rerank),
-            FBetaTopKMetric(k=args.top_k_rerank),
-            PersonalizationMetric(k=args.top_k_rerank),
+            NDCGKMetric(k=cfg.eval.top_k_rerank),
+            RecallTopKMetric(k=cfg.eval.top_k_retrieve),
+            PrecisionTopKMetric(k=cfg.eval.top_k_rerank),
+            FBetaTopKMetric(k=cfg.eval.top_k_rerank),
+            PersonalizationMetric(k=cfg.eval.top_k_rerank),
         ],
         options=[color_scheme],
     )
 
     report.run(reference_data=None, current_data=eval_df, column_mapping=column_mapping)
 
-    evidently_report_fp = f"{args.notebook_persist_dp}/evidently_report.html"
-    os.makedirs(args.notebook_persist_dp, exist_ok=True)
+    evidently_report_fp = f"{cfg.run.run_persist_dir}/evidently_report.html"
+    os.makedirs(cfg.run.run_persist_dir, exist_ok=True)
     report.save_html(evidently_report_fp)
 
-    if args.log_to_mlflow:
+    if cfg.run.log_to_mlflow:
         mlflow.log_artifact(evidently_report_fp)
         for metric_result in report.as_dict()["metrics"]:
             metric = metric_result["metric"]
@@ -66,7 +67,7 @@ def log_ranking_metrics(args, eval_df):
 
 
 def log_classification_metrics(
-    args,
+    cfg: Config,
     eval_classification_df,
     target_col="label",
     prediction_col="classification_proba",
@@ -85,12 +86,12 @@ def log_classification_metrics(
     )
 
     evidently_report_fp = (
-        f"{args.notebook_persist_dp}/evidently_report_classification.html"
+        f"{cfg.run.run_persist_dir}/evidently_report_classification.html"
     )
-    os.makedirs(args.notebook_persist_dp, exist_ok=True)
+    os.makedirs(cfg.run.run_persist_dir, exist_ok=True)
     classification_performance_report.save_html(evidently_report_fp)
 
-    if args.log_to_mlflow:
+    if cfg.run.log_to_mlflow:
         mlflow.log_artifact(evidently_report_fp)
         for metric_result in classification_performance_report.as_dict()["metrics"]:
             metric = metric_result["metric"]

@@ -4,6 +4,18 @@
 include .env
 export
 
+model ?= SequenceRetriever
+run_name ?= $(shell date +%Y%m%d%H%M%S)
+
+train:
+	mkdir -p notebooks/papermill-output
+	cd notebooks && uv run papermill \
+		011-sequence-modeling.ipynb \
+		papermill-output/$(shell date +%Y%m%d%H%M%S)_011-sequence-modeling.ipynb \
+		-p run_name $(run_name) \
+		-p model_classname $(model) \
+		-p max_epochs 100
+
 ml-platform-up:
 	docker compose -f compose.yml up -d mlflow_server kv_store qdrant
 
@@ -29,6 +41,10 @@ requirements-txt:
 	# Commend out torch in requirements.txt to pre-install the CPU version in Docker
 	sed '/^torch/ s/^/# /' requirements.txt > .tmp && mv .tmp requirements.txt
 	sed '/^nvidia/ s/^/# /' requirements.txt > .tmp && mv .tmp requirements.txt
+
+clear-notebook-outputs:
+	cd notebooks
+	uv run jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace *.ipynb
 
 down:
 	docker compose -f compose.yml down

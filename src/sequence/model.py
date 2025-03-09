@@ -312,3 +312,52 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             "recommendation": recommendations,
             "score": scores,
         }
+
+
+class SequenceRetrieverFactory:
+    """
+    Factory class for creating sequence retriever models.
+
+    Supported model types:
+        - "sequence": SequenceRetriever (supports unique parameter "item_embedding")
+        - "twotower": TwoTowerSequenceRetriever
+    """
+
+    # Define common parameters and model-specific allowed parameters.
+    common_params = [
+        "num_users",
+        "num_items",
+        "embedding_dim",
+        "pooling_method",
+        "dropout",
+    ]
+    model_configs = {
+        "SequenceRetriever": {
+            "class": SequenceRetriever,
+            "params": common_params + ["item_embedding"],
+            "required": ["num_users", "num_items", "embedding_dim"],
+        },
+        "TwoTowerSequenceRetriever": {
+            "class": TwoTowerSequenceRetriever,
+            "params": common_params,
+            "required": ["num_users", "num_items", "embedding_dim"],
+        },
+    }
+
+    @staticmethod
+    def create_retriever(model_type: str, **kwargs):
+        config = SequenceRetrieverFactory.model_configs.get(model_type)
+        if not config:
+            raise ValueError(f"Unknown model type: {model_type}")
+
+        # Validate required parameters
+        missing = [p for p in config["required"] if p not in kwargs]
+        if missing:
+            raise ValueError(f"Missing required parameters for {model_type}: {missing}")
+
+        # Filter kwargs to only include parameters relevant for the model.
+        allowed_keys = config["params"]
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
+
+        # Create and return the model instance.
+        return config["class"](**filtered_kwargs)

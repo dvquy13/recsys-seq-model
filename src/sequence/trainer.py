@@ -15,10 +15,11 @@ from evidently.metrics import (
 from evidently.pipeline.column_mapping import ColumnMapping
 from evidently.report import Report
 from loguru import logger
-from pydantic import BaseModel
 from torch import nn
 from torchmetrics import AUROC, AveragePrecision
 
+import mlflow
+from src.cfg import Config
 from src.eval.utils import create_label_df, create_rec_df, merge_recs_with_target
 from src.id_mapper import IDMapper
 from src.viz import color_scheme
@@ -41,7 +42,7 @@ class LitSequenceRetriever(L.LightningModule):
         log_dir: str = ".",
         evaluate_ranking: bool = False,
         idm: IDMapper = None,
-        args: BaseModel = None,
+        cfg: Config = None,
         checkpoint_callback=None,
         accelerator: str = "cpu",
     ):
@@ -55,7 +56,7 @@ class LitSequenceRetriever(L.LightningModule):
         # TODO: Refactor
         self.evaluate_ranking = evaluate_ranking
         self.idm = idm
-        self.args = args
+        self.cfg = cfg
         self.accelerator = accelerator
         self.checkpoint_callback = checkpoint_callback
 
@@ -239,9 +240,7 @@ class LitSequenceRetriever(L.LightningModule):
         classification_performance_report.save_html(evidently_report_fp)
 
         if "mlflow" in str(self.logger.__class__).lower():
-            run_id = self.logger.run_id
-            mlf_client = self.logger.experiment
-            mlf_client.log_artifact(run_id, evidently_report_fp)
+            mlflow.log_artifact(evidently_report_fp)
 
             # Calculate PR-AUC using torchmetrics for MLflow
             labels_tensor = torch.tensor(
@@ -252,13 +251,13 @@ class LitSequenceRetriever(L.LightningModule):
             )
             pr_auc_metric = AveragePrecision(task="binary")
             pr_auc = pr_auc_metric(probs_tensor, labels_tensor).item()
-            mlf_client.log_metric(run_id, "pr_auc", pr_auc)
+            mlflow.log_metric("pr_auc", pr_auc)
 
             for metric_result in classification_performance_report.as_dict()["metrics"]:
                 metric = metric_result["metric"]
                 if metric == "ClassificationQualityMetric":
                     roc_auc = float(metric_result["result"]["current"]["roc_auc"])
-                    mlf_client.log_metric(run_id, "roc_auc", roc_auc)
+                    mlflow.log_metric("roc_auc", roc_auc)
                     continue
                 if metric == "ClassificationPRTable":
                     columns = [
@@ -276,14 +275,12 @@ class LitSequenceRetriever(L.LightningModule):
                         prob = int(row["prob"] * 100)  # MLflow step only takes int
                         precision = float(row["precision"])
                         recall = float(row["recall"])
-                        mlf_client.log_metric(
-                            run_id,
+                        mlflow.log_metric(
                             "val_precision_at_prob_as_threshold_step",
                             precision,
                             step=prob,
                         )
-                        mlf_client.log_metric(
-                            run_id,
+                        mlflow.log_metric(
                             "val_recall_at_prob_as_threshold_step",
                             recall,
                             step=prob,
@@ -293,12 +290,12 @@ class LitSequenceRetriever(L.LightningModule):
     def _log_ranking_metrics(self):
         self.model.eval()
 
-        timestamp_col = self.args.timestamp_col
-        rating_col = self.args.rating_col
-        user_col = self.args.user_col
-        item_col = self.args.item_col
-        top_k_retrieve = self.args.top_k_retrieve
-        top_k_rerank = self.args.top_k_rerank
+        timestamp_col = self.cfg.data.timestamp_col
+        rating_col = self.cfg.data.rating_col
+        user_col = self.cfg.data.user_col
+        item_col = self.cfg.data.item_col
+        top_k_retrieve = self.cfg.eval.top_k_retrieve
+        top_k_rerank = self.cfg.eval.top_k_rerank
         idm = self.idm
 
         val_df = self.trainer.val_dataloaders.dataset.df
@@ -367,19 +364,17 @@ class LitSequenceRetriever(L.LightningModule):
         report.save_html(evidently_report_fp)
 
         if "mlflow" in str(self.logger.__class__).lower():
-            run_id = self.logger.run_id
-            mlf_client = self.logger.experiment
-            mlf_client.log_artifact(run_id, evidently_report_fp)
+            mlflow.log_artifact(evidently_report_fp)
             for metric_result in report.as_dict()["metrics"]:
                 metric = metric_result["metric"]
                 if metric == "PersonalizationMetric":
                     metric_value = float(metric_result["result"]["current_value"])
-                    mlf_client.log_metric(run_id, f"val_{metric}", metric_value)
+                    mlflow.log_metric(f"val_{metric}", metric_value)
                     continue
                 result = metric_result["result"]["current"].to_dict()
                 for kth, metric_value in result.items():
-                    mlf_client.log_metric(
-                        run_id, f"val_{metric}_at_k_as_step", metric_value, step=kth
+                    mlflow.log_metric(
+                        f"val_{metric}_at_k_as_step", metric_value, step=kth
                     )
 
     def _get_loss_fn(self):

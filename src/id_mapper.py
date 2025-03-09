@@ -1,4 +1,5 @@
 import json
+from typing import List
 
 
 class IDMapper:
@@ -10,7 +11,10 @@ class IDMapper:
         self.unknown_user_index = -1
         self.unknown_item_index = -1
 
-    def fit(self, user_ids, item_ids):
+    def fit(self, user_ids: List[str], item_ids: List[str]):
+        # Make sure the order is the deterministic across runs
+        user_ids = sorted(user_ids)
+        item_ids = sorted(item_ids)
         self.user_to_index = {user_id: idx for idx, user_id in enumerate(user_ids)}
         self.index_to_user = list(user_ids)
         self.item_to_index = {item_id: idx for idx, item_id in enumerate(item_ids)}

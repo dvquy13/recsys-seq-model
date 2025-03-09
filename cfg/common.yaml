@@ -1,0 +1,67 @@
+author: quy.dinh
+random_seed: 41
+
+run:
+  testing: false
+  log_to_mlflow: true
+  experiment_name: null
+  run_name: null
+  run_persist_dir: null
+  random_seed: 41
+
+data:
+  hf_datasets:
+    name: "McAuley-Lab/Amazon-Reviews-2023"
+    mcauley_variant: "Books"
+
+  train_fp: "$ROOT_DIR/data/train.parquet"
+  val_fp: "$ROOT_DIR/data/val.parquet"
+
+  idm_fp: "$ROOT_DIR/data/idm.json"
+  metadata_fp: "$ROOT_DIR/data/metadata.parquet"
+  train_features_fp: "$ROOT_DIR/data/train_features.parquet"
+  val_features_fp: "$ROOT_DIR/data/val_features.parquet"
+  full_features_neg_fp: "$ROOT_DIR/data/full_features_neg_sampling_df.parquet"
+  train_features_neg_fp: "$ROOT_DIR/data/train_features_neg_df.parquet"
+  val_features_neg_fp: "$ROOT_DIR/data/val_features_neg_df.parquet"
+
+  user_col: "user_id"
+  item_col: "parent_asin"
+  rating_col: "rating"
+  timestamp_col: "timestamp"
+
+sample:
+  sample_users: 10000
+  min_val_records: 5000
+  min_user_interactions: 5
+  min_item_interactions: 10
+
+train:
+  label_format: "binary"
+  learning_rate: 0.001
+  batch_size: 128
+  max_epochs: 100
+  early_stopping_patience: 5
+  device: null
+
+  embedding_dim: 128
+  dropout: 0
+  l2_reg: 1e-5
+
+  retriever:
+    model_classname: "TwoTowerSequenceRetriever"
+    mlf_model_name: "sequence_retriever"
+
+  sequence:
+    sequence_length: 10
+
+eval:
+  top_k_retrieve: 100
+  top_k_rerank: 10
+  min_roc_auc: 0.7
+
+vectorstore:
+  qdrant:
+    classname: QdrantVectorStore
+    url: null
+    collection_name: null
