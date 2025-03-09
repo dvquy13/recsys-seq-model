@@ -57,7 +57,7 @@ class TrainConfig(BaseModel):
     device: Optional[str] = None
 
     class RetrieverConfig(BaseModel):
-        model_classname: str = "SequenceRetriever"
+        model_classname: str = "TwoTowerSequenceRetriever"
         mlf_model_name: str = "sequence_retriever"
 
     class SequenceConfig(BaseModel):
