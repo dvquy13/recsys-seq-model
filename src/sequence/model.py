@@ -7,15 +7,6 @@ from tqdm.auto import tqdm
 
 
 class BaseSequenceRetriever(nn.Module):
-    """
-    Base class that encapsulates shared functionality for sequence models.
-    This class handles:
-      - Initialization of user and item embeddings (with optional external item embedding).
-      - Setting up the GRU (if needed) or relying on mean pooling.
-      - A helper for pooling a sequence of embeddings.
-      - A helper for replacing -1 with the padding index.
-    """
-
     def __init__(
         self,
         num_users: int,
@@ -52,9 +43,6 @@ class BaseSequenceRetriever(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def pool_sequence(self, seq_embeds: torch.Tensor) -> torch.Tensor:
-        """
-        Pools a sequence of embeddings using GRU or mean pooling.
-        """
         if self.pooling_method == "gru":
             # GRU returns output and hidden state; use the final hidden state.
             _, hidden_state = self.gru(seq_embeds)
@@ -74,12 +62,61 @@ class BaseSequenceRetriever(nn.Module):
         return torch.where(tensor == -1, padding_idx_tensor, tensor)
 
 
-class SequenceRetriever(BaseSequenceRetriever):
-    """
-    A PyTorch neural network model for predicting user-item interaction ratings based on sequences
-    of previous items and a target item. Inherits common embedding and pooling functionality from BaseSequenceRetriever.
-    """
+class SequenceRetrieverFactory:
+    # Registry to hold model implementations.
+    MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {}
 
+    @staticmethod
+    def register_retriever(name: str, params: list = None, required: list = None):
+        """
+        Static method decorator to register a new retriever model with the factory.
+
+        Args:
+            name (str): Unique name for the model type.
+            params (list, optional): List of allowed parameter names.
+            required (list, optional): List of required parameter names.
+        """
+
+        def decorator(cls):
+            SequenceRetrieverFactory.MODEL_REGISTRY[name] = {
+                "class": cls,
+                "params": params or [],
+                "required": required or [],
+            }
+            return cls
+
+        return decorator
+
+    @staticmethod
+    def create_retriever(model_type: str, **kwargs):
+        config = SequenceRetrieverFactory.MODEL_REGISTRY.get(model_type)
+        if not config:
+            raise ValueError(f"Unknown model type: {model_type}")
+
+        # Validate required parameters.
+        missing = [p for p in config["required"] if p not in kwargs]
+        if missing:
+            raise ValueError(f"Missing required parameters for {model_type}: {missing}")
+
+        # Filter kwargs to only include parameters relevant for the model.
+        allowed_keys = config["params"]
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
+        return config["class"](**filtered_kwargs)
+
+
+@SequenceRetrieverFactory.register_retriever(
+    "SequenceRetriever",
+    params=[
+        "num_users",
+        "num_items",
+        "embedding_dim",
+        "pooling_method",
+        "dropout",
+        "item_embedding",
+    ],
+    required=["num_users", "num_items", "embedding_dim"],
+)
+class SequenceRetriever(BaseSequenceRetriever):
     def __init__(
         self,
         num_users: int,
@@ -93,7 +130,6 @@ class SequenceRetriever(BaseSequenceRetriever):
             num_users, num_items, embedding_dim, pooling_method, dropout, item_embedding
         )
         self.relu = nn.ReLU()
-        # Fully connected layers for rating prediction.
         self.fc_rating = nn.Sequential(
             nn.Linear(embedding_dim * 3, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
@@ -122,8 +158,7 @@ class SequenceRetriever(BaseSequenceRetriever):
         combined_embedding = torch.cat(
             (pooled_seq, embedded_target, user_embeddings), dim=1
         )
-        output_ratings = self.fc_rating(combined_embedding)
-        return output_ratings
+        return self.fc_rating(combined_embedding)
 
     def predict(
         self, user: torch.Tensor, item_sequence: torch.Tensor, target_item: torch.Tensor
@@ -188,12 +223,12 @@ class SequenceRetriever(BaseSequenceRetriever):
         }
 
 
+@SequenceRetrieverFactory.register_retriever(
+    "TwoTowerSequenceRetriever",
+    params=["num_users", "num_items", "embedding_dim", "pooling_method", "dropout"],
+    required=["num_users", "num_items", "embedding_dim"],
+)
 class TwoTowerSequenceRetriever(BaseSequenceRetriever):
-    """
-    Two-tower model that separates user/sequence processing (query tower) from candidate item embedding (candidate tower).
-    Inherits common embedding and pooling functionality from BaseSequenceRetriever.
-    """
-
     def __init__(
         self,
         num_users: int,
@@ -224,8 +259,7 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
     ) -> torch.Tensor:
         query_embedding = self.get_query_embedding(user_ids, item_seq)
         candidate_embedding = self.get_candidate_embedding(candidate_items)
-
-        # Normalize embeddings.
+        # Normalize embeddings
         query_embedding = F.normalize(query_embedding, p=2, dim=1)
         if candidate_embedding.dim() == 2:
             candidate_embedding = F.normalize(candidate_embedding, p=2, dim=1)
@@ -237,10 +271,8 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             )
         else:
             raise ValueError("Candidate embedding must be either 2D or 3D.")
-
         # Scale cosine similarity from [-1, 1] to [0, 1].
-        scores = (cos_sim + 1) / 2
-        return scores
+        return (cos_sim + 1) / 2
 
     def get_query_embedding(
         self, user_ids: torch.Tensor, item_seq: torch.Tensor
@@ -251,8 +283,7 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         seq_rep = self.pool_sequence(seq_embeds)
         user_embed = self.user_embedding(user_ids)
         combined = torch.cat([user_embed, seq_rep], dim=1)
-        query_embedding = self.query_fc(combined)
-        return query_embedding
+        return self.query_fc(combined)
 
     def get_candidate_embedding(self, candidate_items: torch.Tensor) -> torch.Tensor:
         candidate_embedding = self.item_embedding(candidate_items)
@@ -312,52 +343,3 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             "recommendation": recommendations,
             "score": scores,
         }
-
-
-class SequenceRetrieverFactory:
-    """
-    Factory class for creating sequence retriever models.
-
-    Supported model types:
-        - "sequence": SequenceRetriever (supports unique parameter "item_embedding")
-        - "twotower": TwoTowerSequenceRetriever
-    """
-
-    # Define common parameters and model-specific allowed parameters.
-    common_params = [
-        "num_users",
-        "num_items",
-        "embedding_dim",
-        "pooling_method",
-        "dropout",
-    ]
-    model_configs = {
-        "SequenceRetriever": {
-            "class": SequenceRetriever,
-            "params": common_params + ["item_embedding"],
-            "required": ["num_users", "num_items", "embedding_dim"],
-        },
-        "TwoTowerSequenceRetriever": {
-            "class": TwoTowerSequenceRetriever,
-            "params": common_params,
-            "required": ["num_users", "num_items", "embedding_dim"],
-        },
-    }
-
-    @staticmethod
-    def create_retriever(model_type: str, **kwargs):
-        config = SequenceRetrieverFactory.model_configs.get(model_type)
-        if not config:
-            raise ValueError(f"Unknown model type: {model_type}")
-
-        # Validate required parameters
-        missing = [p for p in config["required"] if p not in kwargs]
-        if missing:
-            raise ValueError(f"Missing required parameters for {model_type}: {missing}")
-
-        # Filter kwargs to only include parameters relevant for the model.
-        allowed_keys = config["params"]
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
-
-        # Create and return the model instance.
-        return config["class"](**filtered_kwargs)
