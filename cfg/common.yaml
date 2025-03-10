@@ -63,5 +63,5 @@ eval:
 vectorstore:
   qdrant:
     classname: QdrantVectorStore
-    url: null
-    collection_name: null
+    url: $QDRANT_HOST:$QDRANT_PORT
+    collection_name: $QDRANT_COLLECTION_NAME

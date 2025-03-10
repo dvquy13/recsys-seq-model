@@ -73,7 +73,11 @@ class LitSequenceRetriever(L.LightningModule):
         # Ensure shapes match by squeezing if necessary
         labels = batch["rating"].float()
         predictions = self.model.predict(
-            input_user_ids, input_item_sequences, input_item_ids
+            {
+                "user_ids": input_user_ids,
+                "item_seq": input_item_sequences,
+                "candidate_items": input_item_ids,
+            }
         ).view(labels.shape)
 
         loss_fn = self._get_loss_fn()
@@ -96,7 +100,11 @@ class LitSequenceRetriever(L.LightningModule):
 
         labels = batch["rating"]
         predictions = self.model.predict(
-            input_user_ids, input_item_sequences, input_item_ids
+            {
+                "user_ids": input_user_ids,
+                "item_seq": input_item_sequences,
+                "candidate_items": input_item_ids,
+            }
         ).view(labels.shape)
 
         loss_fn = self._get_loss_fn()
@@ -204,7 +212,11 @@ class LitSequenceRetriever(L.LightningModule):
             _input_item_sequences = batch_input["item_sequence"].to(self._get_device())
             _labels = batch_input["rating"].to(self._get_device())
             _classifications = self.model.predict(
-                _input_user_ids, _input_item_sequences, _input_item_ids
+                {
+                    "user_ids": _input_user_ids,
+                    "item_seq": _input_item_sequences,
+                    "candidate_items": _input_item_ids,
+                }
             ).view(_labels.shape)
 
             labels.extend(_labels.cpu().detach().numpy())
@@ -304,11 +316,17 @@ class LitSequenceRetriever(L.LightningModule):
         to_rec_df = val_df.sort_values(timestamp_col, ascending=True).drop_duplicates(
             subset=[user_col]
         )
-        recommendations = self.model.recommend(
-            torch.tensor(to_rec_df["user_indice"].values, device=self._get_device()),
-            torch.tensor(
+        # Create a dictionary input for recommendations
+        rec_inputs = {
+            "user_ids": torch.tensor(
+                to_rec_df["user_indice"].values, device=self._get_device()
+            ),
+            "item_seq": torch.tensor(
                 to_rec_df["item_sequence"].values.tolist(), device=self._get_device()
             ),
+        }
+        recommendations = self.model.recommend(
+            rec_inputs,
             k=top_k_retrieve,
             batch_size=4,
         )
