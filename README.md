@@ -12,4 +12,16 @@
 - Run `chmod +x mlflow/wait-for-it.sh` to wait for MLflow to start before creating objects
 
 # Train model
+Run `make ml-platform-up` to start ML supporting services like MLFlow and Qdrant.
+
 Run notebooks in this sequence denoted by the notebook name prefix. For example: 000 -> 001 -> 002...
+
+Run the notebook 020 to store the model outputs to Qdrant Vector Store.
+
+# Run API
+```shell
+cd $ROOT_DIR
+make requirements-txt
+make api-up
+echo "Visit http://localhost:8000/docs to interact with the APIs"
+```

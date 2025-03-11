@@ -37,10 +37,15 @@ api-down:
 
 # Create the requirements.txt file and update the torch to CPU version to reduce the image size
 requirements-txt:
+# requirements.txt for model_server/
 	uv export --group serving --group ml --no-hashes --format requirements-txt > requirements.txt
 	# Commend out torch in requirements.txt to pre-install the CPU version in Docker
 	sed '/^torch/ s/^/# /' requirements.txt > .tmp && mv .tmp requirements.txt
 	sed '/^nvidia/ s/^/# /' requirements.txt > .tmp && mv .tmp requirements.txt
+	mv requirements.txt model_server/requirements.txt
+
+# requirements.txt for api/
+	uv export --group serving --no-hashes --format requirements-txt > api/requirements.txt
 
 clear-notebook-outputs:
 	cd notebooks

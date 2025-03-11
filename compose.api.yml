@@ -1,0 +1,32 @@
+services:
+  api:
+    container_name: api
+    build:
+      context: api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=kv_store
+      - SEQ_RETRIEVER_MODEL_SERVER_URL=http://seq_retriever_model_server:3000
+    volumes:
+      - ./api:/app/api
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  seq_retriever_model_server:
+    container_name: seq_retriever_model_server
+    build:
+      context: .
+      dockerfile: model_server/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow_server:5000
+    entrypoint: ["bentoml", "serve", "service:SeqRetrieverService"]
+
+networks:
+  recsys-mvp:
+    external: true

@@ -41,3 +41,11 @@ pipeline = [
     "ipykernel>=6.29.5",
     "papermill>=2.6.0",
 ]
+serving = [
+    "bentoml>=1.4.3",
+    "fastapi>=0.115.11",
+    # Prevent ModuleNotFoundError: No module named 'multipart.multipart'; 'multipart' is not a package
+    # Ref: https://github.com/gradio-app/gradio/issues/9774
+    "python-multipart==0.0.12",
+    "dill"
+]
