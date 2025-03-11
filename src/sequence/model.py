@@ -92,7 +92,6 @@ class BaseSequenceRetriever(nn.Module):
 
 
 class SequenceRetrieverFactory:
-    # Registry to hold model implementations.
     MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {}
 
     @staticmethod
@@ -122,12 +121,12 @@ class SequenceRetrieverFactory:
         if not config:
             raise ValueError(f"Unknown model type: {model_type}")
 
-        # Validate required parameters.
+        # Validate required parameters
         missing = [p for p in config["required"] if p not in kwargs]
         if missing:
             raise ValueError(f"Missing required parameters for {model_type}: {missing}")
 
-        # Filter kwargs to only include parameters relevant for the model.
+        # Filter kwargs to only include parameters relevant for the model
         allowed_keys = config["params"]
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
         return config["class"](**filtered_kwargs)
@@ -161,13 +160,13 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         self.num_users = num_users
         self.user_embedding = nn.Embedding(num_users, embedding_dim)
 
-        # Query tower: combines user embedding with sequence representation.
+        # Query tower: combines user embedding with sequence representation
         self.query_fc = nn.Sequential(
             nn.Linear(embedding_dim * 2, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
             nn.Dropout(dropout),
         )
-        # Candidate tower: transforms raw item embeddings.
+        # Candidate tower: transforms raw item embeddings
         self.candidate_fc = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
             nn.BatchNorm1d(embedding_dim),
@@ -181,21 +180,17 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
           - "item_seq": Tensor of shape (batch_size, seq_length)
           - "candidate_items": Tensor of shape (batch_size, embedding_dim) or (batch_size, num_candidates)
         """
-        user_ids = inputs.get("user_ids")
-        item_seq = inputs.get("item_seq")
-        candidate_items = inputs.get("candidate_items")
-
-        if user_ids is None:
+        if "user_ids" not in inputs:
             raise ValueError("Missing required input key: 'user_ids'")
-        if item_seq is None:
+        if "item_seq" not in inputs:
             raise ValueError("Missing required input key: 'item_seq'")
-        if candidate_items is None:
+        if "candidate_items" not in inputs:
             raise ValueError("Missing required input key: 'candidate_items'")
 
-        query_embedding = self.get_query_embedding(user_ids, item_seq)
-        candidate_embedding = self.get_candidate_embedding(candidate_items)
+        query_embedding = self.get_query_embeddings(inputs)
+        candidate_embedding = self.get_candidate_embeddings(inputs)
 
-        # Normalize embeddings.
+        # Normalize embeddings
         query_embedding = F.normalize(query_embedding, p=2, dim=1)
         if candidate_embedding.dim() == 2:
             candidate_embedding = F.normalize(candidate_embedding, p=2, dim=1)
@@ -207,12 +202,17 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             )
         else:
             raise ValueError("Candidate embedding must be either 2D or 3D.")
-        # Scale cosine similarity from [-1, 1] to [0, 1].
+        # Scale cosine similarity from [-1, 1] to [0, 1]
         return (cos_sim + 1) / 2
 
-    def get_query_embedding(
-        self, user_ids: torch.Tensor, item_seq: torch.Tensor
-    ) -> torch.Tensor:
+    def get_query_embeddings(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        user_ids = inputs.get("user_ids")
+        item_seq = inputs.get("item_seq")
+        if user_ids is None:
+            raise ValueError("Missing required input key: 'user_ids'")
+        if item_seq is None:
+            raise ValueError("Missing required input key: 'item_seq'")
+
         # Replace -1 values with the designated padding index
         item_seq = self.replace_neg_one_with_padding(item_seq)
         # Create a mask: True for valid tokens, False for padding
@@ -224,7 +224,10 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         combined = torch.cat([user_embed, seq_rep], dim=1)
         return self.query_fc(combined)
 
-    def get_candidate_embedding(self, candidate_items: torch.Tensor) -> torch.Tensor:
+    def get_candidate_embeddings(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        candidate_items = inputs.get("candidate_items")
+        if candidate_items is None:
+            raise ValueError("Missing required input key: 'candidate_items'")
         candidate_embedding = self.item_embedding(candidate_items)
         if candidate_embedding.dim() == 2:
             candidate_embedding = self.candidate_fc(candidate_embedding)
@@ -240,10 +243,6 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         return candidate_embedding
 
     def predict(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """
-        A wrapper for forward that accepts a dictionary of inputs.
-        You can use different keys (e.g., 'target_item') if needed.
-        """
         return self.forward(inputs)
 
     def recommend(
@@ -261,7 +260,7 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         """
         self.eval()
 
-        # Extract users and item sequences using preferred keys.
+        # Extract users and item sequences using preferred keys
         users = inputs.get("user_ids")
         item_sequences = inputs.get("item_seq")
         if users is None:
@@ -271,7 +270,9 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
 
         device = users.device
         all_items = torch.arange(self.item_embedding.num_embeddings, device=device)
-        candidate_embeddings = self.get_candidate_embedding(all_items)
+        # Wrap the candidate items in a dictionary.
+        candidate_inputs = {"candidate_items": all_items}
+        candidate_embeddings = self.get_candidate_embeddings(candidate_inputs)
 
         user_indices = []
         recommendations = []
@@ -284,7 +285,8 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             ):
                 user_batch = users[i : i + batch_size]
                 item_seq_batch = item_sequences[i : i + batch_size]
-                query_embedding = self.get_query_embedding(user_batch, item_seq_batch)
+                batch_inputs = {"user_ids": user_batch, "item_seq": item_seq_batch}
+                query_embedding = self.get_query_embeddings(batch_inputs)
                 batch_scores = torch.matmul(query_embedding, candidate_embeddings.t())
 
                 topk_scores, topk_indices = torch.topk(batch_scores, k, dim=1)
@@ -340,25 +342,14 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
           - "item_seq": Tensor of shape (batch_size, seq_length)
           - "candidate_items": Tensor of shape (batch_size, embedding_dim) or (batch_size, num_candidates)
         """
-        item_seq = inputs.get("item_seq")
-        candidate_items = inputs.get("candidate_items")
-
-        if item_seq is None:
+        if "item_seq" not in inputs:
             raise ValueError("Missing required input key: 'item_seq'")
-        if candidate_items is None:
+        if "candidate_items" not in inputs:
             raise ValueError("Missing required input key: 'candidate_items'")
 
-        # Compute query embedding solely from the item sequence.
-        item_seq = self.replace_neg_one_with_padding(item_seq)
-        mask = item_seq != self.item_embedding.padding_idx
-        seq_embeds = self.item_embedding(item_seq)
-        seq_rep = self.pool_sequence(seq_embeds, mask)
-        query_embedding = self.query_fc(seq_rep)
+        query_embedding = self.get_query_embeddings(inputs)
+        candidate_embedding = self.get_candidate_embeddings(inputs)
 
-        # Compute candidate embedding.
-        candidate_embedding = self.get_candidate_embedding(candidate_items)
-
-        # Normalize embeddings.
         query_embedding = F.normalize(query_embedding, p=2, dim=1)
         if candidate_embedding.dim() == 2:
             candidate_embedding = F.normalize(candidate_embedding, p=2, dim=1)
@@ -370,11 +361,24 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
             )
         else:
             raise ValueError("Candidate embedding must be either 2D or 3D.")
-
-        # Scale cosine similarity from [-1, 1] to [0, 1].
+        # Scale cosine similarity from [-1, 1] to [0, 1]
         return (cos_sim + 1) / 2
 
-    def get_candidate_embedding(self, candidate_items: torch.Tensor) -> torch.Tensor:
+    def get_query_embeddings(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        item_seq = inputs.get("item_seq")
+        if item_seq is None:
+            raise ValueError("Missing required input key: 'item_seq'")
+        item_seq = self.replace_neg_one_with_padding(item_seq)
+        mask = item_seq != self.item_embedding.padding_idx
+        seq_embeds = self.item_embedding(item_seq)
+        seq_rep = self.pool_sequence(seq_embeds, mask)
+        query_embedding = self.query_fc(seq_rep)
+        return F.normalize(query_embedding, p=2, dim=1)
+
+    def get_candidate_embeddings(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        candidate_items = inputs.get("candidate_items")
+        if candidate_items is None:
+            raise ValueError("Missing required input key: 'candidate_items'")
         candidate_embedding = self.item_embedding(candidate_items)
         if candidate_embedding.dim() == 2:
             candidate_embedding = self.candidate_fc(candidate_embedding)
@@ -390,9 +394,6 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
         return candidate_embedding
 
     def predict(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """
-        A wrapper for forward that accepts a dictionary of inputs.
-        """
         return self.forward(inputs)
 
     def recommend(
@@ -402,7 +403,7 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
         batch_size: int = 128,
     ) -> Dict[str, Any]:
         """
-        Expects a dictionary with keys:
+        inputs: Expects a dictionary with keys:
           - "user_ids": Tensor of user IDs.
           - "item_seq": Tensor of item sequences.
         Generates recommendations by computing candidate embeddings over all items,
@@ -422,7 +423,8 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
 
         device = item_seq.device
         all_items = torch.arange(self.item_embedding.num_embeddings, device=device)
-        candidate_embeddings = self.get_candidate_embedding(all_items)
+        candidate_inputs = {"candidate_items": all_items}
+        candidate_embeddings = self.get_candidate_embeddings(candidate_inputs)
 
         user_indices = []
         recommendations = []
@@ -435,7 +437,8 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
             ):
                 user_batch = users[i : i + batch_size]
                 seq_batch = item_seq[i : i + batch_size]
-                query_embedding = self.get_query_embedding_from_seq(seq_batch)
+                batch_inputs = {"item_seq": seq_batch}
+                query_embedding = self.get_query_embeddings(batch_inputs)
                 batch_scores = torch.matmul(query_embedding, candidate_embeddings.t())
                 topk_scores, topk_indices = torch.topk(batch_scores, k, dim=1)
                 for j in range(seq_batch.size(0)):
@@ -448,15 +451,3 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
             "recommendation": recommendations,
             "score": scores,
         }
-
-    def get_query_embedding_from_seq(self, item_seq: torch.Tensor) -> torch.Tensor:
-        """
-        Returns the query embedding computed from an item sequence.
-        """
-        item_seq = self.replace_neg_one_with_padding(item_seq)
-        mask = item_seq != self.item_embedding.padding_idx
-        seq_embeds = self.item_embedding(item_seq)
-        seq_rep = self.pool_sequence(seq_embeds, mask)
-        query_embedding = self.query_fc(seq_rep)
-        query_embedding = F.normalize(query_embedding, p=2, dim=1)
-        return query_embedding
