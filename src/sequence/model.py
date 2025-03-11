@@ -166,12 +166,6 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             nn.BatchNorm1d(embedding_dim),
             nn.Dropout(dropout),
         )
-        # Candidate tower: transforms raw item embeddings
-        self.candidate_fc = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.BatchNorm1d(embedding_dim),
-            nn.Dropout(dropout),
-        )
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
@@ -229,17 +223,6 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
         if candidate_items is None:
             raise ValueError("Missing required input key: 'candidate_items'")
         candidate_embedding = self.item_embedding(candidate_items)
-        if candidate_embedding.dim() == 2:
-            candidate_embedding = self.candidate_fc(candidate_embedding)
-        elif candidate_embedding.dim() == 3:
-            batch_size, num_candidates, _ = candidate_embedding.shape
-            candidate_embedding = candidate_embedding.view(-1, self.embedding_dim)
-            candidate_embedding = self.candidate_fc(candidate_embedding)
-            candidate_embedding = candidate_embedding.view(
-                batch_size, num_candidates, self.embedding_dim
-            )
-        else:
-            raise ValueError("Candidate embedding must be either 2D or 3D.")
         return candidate_embedding
 
     def recommend(
@@ -327,11 +310,6 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
             nn.BatchNorm1d(embedding_dim),
             nn.Dropout(dropout),
         )
-        self.candidate_fc = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.BatchNorm1d(embedding_dim),
-            nn.Dropout(dropout),
-        )
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
@@ -368,6 +346,7 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
         item_seq = self.replace_neg_one_with_padding(item_seq)
         mask = item_seq != self.item_embedding.padding_idx
         seq_embeds = self.item_embedding(item_seq)
+        # Pool the sequence; the method will decide whether to use the mask based on self.mask_pooling
         seq_rep = self.pool_sequence(seq_embeds, mask)
         query_embedding = self.query_fc(seq_rep)
         return F.normalize(query_embedding, p=2, dim=1)
@@ -377,17 +356,6 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
         if candidate_items is None:
             raise ValueError("Missing required input key: 'candidate_items'")
         candidate_embedding = self.item_embedding(candidate_items)
-        if candidate_embedding.dim() == 2:
-            candidate_embedding = self.candidate_fc(candidate_embedding)
-        elif candidate_embedding.dim() == 3:
-            batch_size, num_candidates, _ = candidate_embedding.shape
-            candidate_embedding = candidate_embedding.view(-1, self.embedding_dim)
-            candidate_embedding = self.candidate_fc(candidate_embedding)
-            candidate_embedding = candidate_embedding.view(
-                batch_size, num_candidates, self.embedding_dim
-            )
-        else:
-            raise ValueError("Candidate embedding must be either 2D or 3D.")
         return candidate_embedding
 
     def recommend(
