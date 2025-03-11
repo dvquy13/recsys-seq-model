@@ -68,8 +68,7 @@ class SequenceRetrieverInferenceWrapper(mlflow.pyfunc.PythonModel):
         item_sequences = torch.tensor(item_sequences)
         candidate_items = torch.tensor(candidate_items)
 
-        # Pass a dictionary input to the model's predict method.
-        output = self.model.predict(
+        output = self.model(
             {
                 "user_ids": user_indices,
                 "item_seq": item_sequences,

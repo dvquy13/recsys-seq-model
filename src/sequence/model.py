@@ -242,9 +242,6 @@ class TwoTowerSequenceRetriever(BaseSequenceRetriever):
             raise ValueError("Candidate embedding must be either 2D or 3D.")
         return candidate_embedding
 
-    def predict(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        return self.forward(inputs)
-
     def recommend(
         self,
         inputs: Dict[str, torch.Tensor],
@@ -392,9 +389,6 @@ class SoleSequenceRetriever(BaseSequenceRetriever):
         else:
             raise ValueError("Candidate embedding must be either 2D or 3D.")
         return candidate_embedding
-
-    def predict(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        return self.forward(inputs)
 
     def recommend(
         self,

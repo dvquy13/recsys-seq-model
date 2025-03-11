@@ -72,7 +72,7 @@ class LitSequenceRetriever(L.LightningModule):
 
         # Ensure shapes match by squeezing if necessary
         labels = batch["rating"].float()
-        predictions = self.model.predict(
+        predictions = self.model(
             {
                 "user_ids": input_user_ids,
                 "item_seq": input_item_sequences,
@@ -99,7 +99,7 @@ class LitSequenceRetriever(L.LightningModule):
         input_item_sequences = batch["item_sequence"]
 
         labels = batch["rating"]
-        predictions = self.model.predict(
+        predictions = self.model(
             {
                 "user_ids": input_user_ids,
                 "item_seq": input_item_sequences,
@@ -211,7 +211,7 @@ class LitSequenceRetriever(L.LightningModule):
             _input_item_ids = batch_input["item"].to(self._get_device())
             _input_item_sequences = batch_input["item_sequence"].to(self._get_device())
             _labels = batch_input["rating"].to(self._get_device())
-            _classifications = self.model.predict(
+            _classifications = self.model(
                 {
                     "user_ids": _input_user_ids,
                     "item_seq": _input_item_sequences,
