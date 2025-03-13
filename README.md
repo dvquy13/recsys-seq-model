@@ -25,3 +25,14 @@ make requirements-txt
 make api-up
 echo "Visit http://localhost:8000/docs to interact with the APIs"
 ```
+
+To test /score/seq_retriever endpoint, try this request body (feel free to change the actual item IDs):
+```
+{
+  "user_ids_raw": [""],
+  "item_seq_raw": [
+    ["B00DPM7TIG"]
+  ],
+  "candidate_items_raw": ["B00DPM7TIG"]
+}
+```

@@ -30,6 +30,8 @@ data:
   rating_col: "rating"
   timestamp_col: "timestamp"
 
+  bucket_name: "data"
+
 sample:
   sample_users: 10000
   min_val_records: 5000
@@ -65,3 +67,10 @@ vectorstore:
     classname: QdrantVectorStore
     url: $QDRANT_HOST:$QDRANT_PORT
     collection_name: $QDRANT_COLLECTION_NAME
+
+redis:
+  host: $REDIS_HOST
+  port: $REDIS_PORT
+  keys:
+    recent_key_prefix: "feature:user:recent_items:"
+    popular_key: "output:popular"

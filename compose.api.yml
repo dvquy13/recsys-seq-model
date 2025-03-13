@@ -2,7 +2,8 @@ services:
   api:
     container_name: api
     build:
-      context: api
+      context: .
+      dockerfile: api/Dockerfile
     ports:
       - "8000:8000"
     env_file:
@@ -12,7 +13,7 @@ services:
       - SEQ_RETRIEVER_MODEL_SERVER_URL=http://seq_retriever_model_server:3000
     volumes:
       - ./api:/app/api
-    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   seq_retriever_model_server:
     container_name: seq_retriever_model_server
@@ -25,7 +26,9 @@ services:
       - .env
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow_server:5000
-    entrypoint: ["bentoml", "serve", "service:SeqRetrieverService"]
+    volumes:
+      - ./model_server/service.py:/app/service.py
+    entrypoint: ["bentoml", "serve", "service:SeqRetrieverService", "--reload"]
 
 networks:
   recsys-mvp:

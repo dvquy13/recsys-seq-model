@@ -2,13 +2,9 @@ import json
 import os
 from typing import Literal, Optional
 
-import torch
 import yaml
-from lightning.pytorch.loggers import MLFlowLogger
 from loguru import logger
 from pydantic import BaseModel
-
-import mlflow
 
 
 def substitute_env_variables(obj):
@@ -46,6 +42,8 @@ class DataConfig(BaseModel):
     item_col: str
     rating_col: str
     timestamp_col: str
+
+    bucket_name: str
 
 
 class TrainConfig(BaseModel):
@@ -104,6 +102,17 @@ class SampleConfig(BaseModel):
     min_item_interactions: int = 10
 
 
+class RedisConfig(BaseModel):
+    host: str
+    port: int
+
+    class RedisKeys(BaseModel):
+        recent_key_prefix: str
+        popular_key: str
+
+    keys: RedisKeys
+
+
 class Config(BaseModel):
     run: RunConfig
     data: DataConfig
@@ -111,6 +120,7 @@ class Config(BaseModel):
     train: TrainConfig
     eval: EvalConfig
     vectorstore: VectorstoreConfig
+    redis: RedisConfig
 
 
 def deep_update(original: dict, updates: dict) -> dict:
@@ -182,6 +192,8 @@ class ConfigLoader:
         Log all configuration parameters to MLflow.
         Uses a dot-separated key for nested parameters (e.g., "train.learning_rate").
         """
+        import mlflow
+
         flat_config = flatten_dict(self.config.model_dump())
         for key, value in flat_config.items():
             mlflow.log_param(key, value)
@@ -194,6 +206,12 @@ class ConfigLoader:
         For example, if a run name is provided, set the run_persist_dir
         to an absolute path under the 'data' directory.
         """
+        # Import these specific modules here to avoid burdening the api with these dependencies
+        import torch
+        from lightning.pytorch.loggers import MLFlowLogger
+
+        import mlflow
+
         if self.run.run_name:
             self.run.run_persist_dir = os.path.abspath(
                 f"data/{self.config.run.run_name}"

@@ -1,17 +1,21 @@
-import asyncio
 import json
 import os
-import random
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 import redis
 from fastapi import FastAPI, HTTPException, Query
 from loguru import logger
+from qdrant_client import QdrantClient
+
+from src.cfg import ConfigLoader
+from src.dto import RetrieveContext
 
 from .logging_utils import RequestIDMiddleware
 from .utils import debug_logging_decorator
+
+cfg = ConfigLoader("./cfg/common.yaml")
 
 app = FastAPI()
 app.add_middleware(RequestIDMiddleware)
@@ -26,16 +30,16 @@ logger.add(
 SEQ_RETRIEVER_MODEL_SERVER_URL = os.getenv(
     "SEQ_RETRIEVER_MODEL_SERVER_URL", "http://localhost:3000"
 )
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = os.getenv("REDIS_PORT", 6379)
+REDIS_HOST = cfg.redis.host
+REDIS_PORT = cfg.redis.port
 
-seq_retriever_url = f"{SEQ_RETRIEVER_MODEL_SERVER_URL}/predict"
 redis_client = redis.Redis(
     host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True
 )
-redis_feature_recent_items_key_prefix = "feature:user:recent_items:"
-redis_output_popular_key = "output:popular"
-redis_item_tag_key_prefix = "dim:tag_item_map:"
+redis_feature_recent_items_key_prefix = cfg.redis.keys.recent_key_prefix
+redis_output_popular_key = cfg.redis.keys.popular_key
+
+ann_index = QdrantClient(url=cfg.vectorstore.qdrant.url)
 
 
 def get_recommendations_from_redis(
@@ -53,6 +57,17 @@ def get_recommendations_from_redis(
         rec_item_ids = rec_item_ids[:count]
         rec_scores = rec_scores[:count]
     return {"rec_item_ids": rec_item_ids, "rec_scores": rec_scores}
+
+
+def get_item_seq_from_redis(user_id: str) -> Dict[str, Any]:
+    key = redis_feature_recent_items_key_prefix + user_id
+    data = redis_client.get(key)
+    if not data:
+        error_message = f"[DEBUG] No recommendations found for key: {key}"
+        logger.error(error_message)
+        raise HTTPException(status_code=404, detail=error_message)
+    data_json = json.loads(data)
+    return data_json
 
 
 # @app.get("/recs/i2i")
@@ -101,6 +116,15 @@ def get_recommendations_from_redis(
 #     return result
 
 
+@app.post("/recs/retrieve")
+@debug_logging_decorator
+async def retrieve(
+    ctx: RetrieveContext,
+    count: Optional[int] = Query(10, description="Number of items to return"),
+    debug: bool = Query(False, description="Enable debug logging"),
+): ...
+
+
 @app.get("/recs/popular")
 @debug_logging_decorator
 async def get_recommendations_popular(
@@ -112,26 +136,23 @@ async def get_recommendations_popular(
 
 
 # New endpoint to connect to external service
-@app.post("/score/seq_retriever")
+@app.post("/vendor/seq_retriever")
 @debug_logging_decorator
-async def score_seq_retriever(
-    user_ids: List[str],
-    item_seq: List[List[str]],
-    candidate_items: List[str],
+async def seq_retriever(
+    ctx: RetrieveContext,
+    endpoint: str,
     debug: bool = Query(False, description="Enable debug logging"),
 ):
+    user_ids = ctx.user_ids_raw
+    item_seq = ctx.item_seq_raw
+    candidate_items = ctx.candidate_items_raw
+
     logger.debug(
         f"Calling seq_rating_predicting with user_ids: {user_ids}, item_seq: {item_seq} and item_ids: {candidate_items}"
     )
 
     # Step 1: Prepare the payload for the external service
-    payload = {
-        "input_data": {
-            "user_ids_raw": user_ids,
-            "item_seq_raw": item_seq,
-            "candidate_items_raw": candidate_items,
-        }
-    }
+    payload = {"ctx": ctx.model_dump()}
 
     # Using json.dumps to format payload as json string so that later can extract from logs and rebuild the data easily
     logger.debug(
@@ -142,7 +163,7 @@ async def score_seq_retriever(
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                seq_retriever_url,
+                f"{SEQ_RETRIEVER_MODEL_SERVER_URL}/{endpoint}",
                 json=payload,
                 headers={
                     "accept": "application/json",

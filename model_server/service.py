@@ -1,12 +1,16 @@
 import os
 import sys
+from typing import List
 
 import bentoml
+import torch
 from dotenv import load_dotenv
 from loguru import logger
+from pydantic import BaseModel
 
 from mlflow import MlflowClient
 from src.cfg import ConfigLoader
+from src.dto import RetrieveContext
 
 cfg = ConfigLoader("./cfg/common.yaml")
 
@@ -36,6 +40,10 @@ for name, cfg in model_cfg.items():
     )
 
 
+class GetQueryEmbeddingInput(BaseModel):
+    item_seq: List[str]
+
+
 @bentoml.service(name="seq_retriever_service")
 class SeqRetrieverService:
     model_name = model_name
@@ -43,6 +51,7 @@ class SeqRetrieverService:
 
     def __init__(self):
         self.model = bentoml.mlflow.load_model(self.bento_model)
+        self.inferer = self.model.unwrap_python_model()
 
         model_name = self.model_name
         deploy_alias = model_cfg.get(model_name).get("deploy_alias")
@@ -55,11 +64,28 @@ class SeqRetrieverService:
             f"Model Version for '{model_name}' with alias '{deploy_alias}': {self.model_version}"
         )
 
-    @bentoml.api
-    def predict(self, input_data):
-        rv = self.model.predict(input_data)
-        rv["metadata"] = {
+    def _augment_response(self, resp: dict, ctx: RetrieveContext) -> dict:
+        """
+        Helper method to DRY the common response augmentation.
+        """
+        resp["metadata"] = {
             "model_version": self.model_version,
             "model_name": self.model_name,
         }
-        return rv
+        resp["ctx"] = ctx.model_dump()
+        return resp
+
+    @bentoml.api
+    def predict(self, ctx: RetrieveContext):
+        resp = self.model.predict(ctx.model_dump())
+        return self._augment_response(resp, ctx)
+
+    @bentoml.api
+    def get_query_embeddings(self, ctx: RetrieveContext):
+        item_seq = [
+            self.inferer.idm.get_item_index(item_id) for item_id in ctx.item_seq_raw[0]
+        ]
+        inputs = {"item_seq": torch.tensor([item_seq])}
+        query_embedding = self.inferer.model.get_query_embeddings(inputs)
+        resp = {"query_embedding": query_embedding.detach().numpy().tolist()}
+        return self._augment_response(resp, ctx)
