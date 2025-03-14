@@ -7,6 +7,7 @@ import httpx
 import numpy as np
 import redis
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from qdrant_client import QdrantClient
 
@@ -20,6 +21,14 @@ cfg = ConfigLoader("./cfg/common.yaml")
 
 app = FastAPI()
 app.add_middleware(RequestIDMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 logger.remove()
 logger.add(
