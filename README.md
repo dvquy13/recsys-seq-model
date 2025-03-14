@@ -16,7 +16,9 @@ Run `make ml-platform-up` to start ML supporting services like MLFlow and Qdrant
 
 Run notebooks in this sequence denoted by the notebook name prefix. For example: 000 -> 001 -> 002...
 
-Run the notebook 020 to store the model outputs to Qdrant Vector Store.
+Run notebook 020 to store the model outputs to Qdrant Vector Store.
+
+Run notebook 021 to send supporting data to Redis to prepare for online serving.
 
 # Run API
 ```shell
@@ -27,12 +29,23 @@ echo "Visit http://localhost:8000/docs to interact with the APIs"
 ```
 
 To test /score/seq_retriever endpoint, try this request body (feel free to change the actual item IDs):
-```
+```json
 {
   "user_ids_raw": [""],
   "item_seq_raw": [
     ["B00DPM7TIG"]
   ],
   "candidate_items_raw": ["B00DPM7TIG"]
+}
+```
+
+The main API endpoint is /recs/retrieve, try this request body:
+```json
+{
+  "user_ids_raw": ["AE224PFXAEAT66IXX43GRJSWHXCA"],
+  "item_seq_raw": [
+    ["0439064864", "043935806X"]
+  ],
+  "candidate_items_raw": []
 }
 ```
