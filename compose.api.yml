@@ -11,6 +11,7 @@ services:
     environment:
       - REDIS_HOST=kv_store
       - SEQ_RETRIEVER_MODEL_SERVER_URL=http://seq_retriever_model_server:3000
+      - QDRANT_HOST=http://qdrant
     volumes:
       - ./api:/app/api
     command: ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

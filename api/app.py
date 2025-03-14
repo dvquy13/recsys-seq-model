@@ -4,6 +4,7 @@ import sys
 from typing import Any, Dict, Optional
 
 import httpx
+import numpy as np
 import redis
 from fastapi import FastAPI, HTTPException, Query
 from loguru import logger
@@ -32,14 +33,15 @@ SEQ_RETRIEVER_MODEL_SERVER_URL = os.getenv(
 )
 REDIS_HOST = cfg.redis.host
 REDIS_PORT = cfg.redis.port
+QDRANT_URL = os.getenv("QDRANT_URL", cfg.vectorstore.qdrant.url)
 
 redis_client = redis.Redis(
     host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True
 )
-redis_feature_recent_items_key_prefix = cfg.redis.keys.recent_key_prefix
+redis_feature_prev_items_key_prefix = cfg.redis.keys.recent_key_prefix
 redis_output_popular_key = cfg.redis.keys.popular_key
 
-ann_index = QdrantClient(url=cfg.vectorstore.qdrant.url)
+ann_index = QdrantClient(url=QDRANT_URL)
 
 
 def get_recommendations_from_redis(
@@ -59,73 +61,54 @@ def get_recommendations_from_redis(
     return {"rec_item_ids": rec_item_ids, "rec_scores": rec_scores}
 
 
-def get_item_seq_from_redis(user_id: str) -> Dict[str, Any]:
-    key = redis_feature_recent_items_key_prefix + user_id
+def get_user_prev_interactions(user_id: str) -> Dict[str, Any]:
+    key = redis_feature_prev_items_key_prefix + user_id
     data = redis_client.get(key)
     if not data:
         error_message = f"[DEBUG] No recommendations found for key: {key}"
         logger.error(error_message)
         raise HTTPException(status_code=404, detail=error_message)
-    data_json = json.loads(data)
-    return data_json
+    return {"recent_interactions": data.split("__")}
 
 
-# @app.get("/recs/i2i")
-# @debug_logging_decorator
-# async def get_recommendations_i2i(
-#     item_id: str = Query(..., description="ID of the item to get recommendations for"),
-#     count: Optional[int] = Query(10, description="Number of recommendations to return"),
-#     debug: bool = Query(False, description="Enable debug logging"),
-# ):
-#     redis_key = f"{redis_output_i2i_key_prefix}{item_id}"
-#     recommendations = get_recommendations_from_redis(redis_key, count)
-#     return {
-#         "item_id": item_id,
-#         "recommendations": recommendations,
-#     }
-
-
-# @app.get(
-#     "/recs/u2i/last_item_i2i",
-#     summary="Get recommendations for users based on their most recent items",
-# )
-# @debug_logging_decorator
-# async def get_recommendations_u2i_last_item_i2i(
-#     user_id: str = Query(..., description="ID of the user"),
-#     count: Optional[int] = Query(10, description="Number of recommendations to return"),
-#     debug: bool = Query(False, description="Enable debug logging"),
-# ):
-#     logger.debug(f"Getting recent items for user_id: {user_id}")
-
-#     # Step 1: Get the recent items for the user
-#     item_seq = await feature_store_fetch_item_sequence(user_id)
-#     last_item_id = item_seq["item_sequence"][-1]
-
-#     logger.debug(f"Most recently interacted item: {last_item_id}")
-
-#     # Step 2: Call the i2i endpoint internally to get recommendations for that item
-#     recommendations = await get_recommendations_i2i(last_item_id, count, debug)
-
-#     # Step 3: Format and return the output
-#     result = {
-#         "user_id": user_id,
-#         "last_item_id": last_item_id,
-#         "recommendations": recommendations["recommendations"],
-#     }
-
-#     return result
-
-
-@app.post("/recs/retrieve")
+@app.post("/recs/retrieve", summary="Retrieve the candidate for recommendations")
 @debug_logging_decorator
 async def retrieve(
     ctx: RetrieveContext,
     count: Optional[int] = Query(10, description="Number of items to return"),
     debug: bool = Query(False, description="Enable debug logging"),
-): ...
+):
+    if len(ctx.user_ids_raw) > 0:
+        logger.info(f"Getting recent interactions for user: {ctx.user_ids_raw[0]}")
+        user_id = ctx.user_ids_raw[0]
+        user_prev_interactions = get_user_prev_interactions(user_id)[
+            "recent_interactions"
+        ]
+        logger.info(f"[DEBUG] {user_prev_interactions=}")
+        curr_item_seq = ctx.item_seq_raw[0]
+        ctx.item_seq_raw = [user_prev_interactions + curr_item_seq]
+        logger.info(f"[DEBUG] {ctx=}")
+
+    if len(ctx.item_seq_raw[0]) == 0:
+        logger.info("Empty RetrieveContext, fallback to popular recommendations")
+        return await get_recommendations_popular(count=count)
+
+    query_embedding_resp = await seq_retriever(ctx, endpoint="get_query_embeddings")
+    query_embedding = np.array(query_embedding_resp["query_embedding"])
+    logger.info(f"[DEBUG] {query_embedding.shape=}")
+
+    hits = ann_index.search(
+        collection_name=cfg.vectorstore.qdrant.collection_name,
+        query_vector=query_embedding[0],
+        limit=count,
+    )
+    recommendations = [
+        {"score": hit.model_dump()["score"], **hit.payload} for hit in hits
+    ]
+    return {"recommendations": recommendations, "ctx": ctx.model_dump()}
 
 
-@app.get("/recs/popular")
+@app.get("/recs/popular", summary="Get popular items as recommendations")
 @debug_logging_decorator
 async def get_recommendations_popular(
     count: Optional[int] = Query(10, description="Number of popular items to return"),
@@ -136,7 +119,7 @@ async def get_recommendations_popular(
 
 
 # New endpoint to connect to external service
-@app.post("/vendor/seq_retriever")
+@app.post("/vendor/seq_retriever", summary="Call SeqRetriever model endpoint")
 @debug_logging_decorator
 async def seq_retriever(
     ctx: RetrieveContext,
