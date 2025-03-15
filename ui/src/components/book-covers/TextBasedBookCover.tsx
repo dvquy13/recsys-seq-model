@@ -37,6 +37,20 @@ const truncateText = (text: string, maxLength: number) => {
   return text.slice(0, maxLength - 3) + '...';
 };
 
+const getPatternId = (parent_asin: string | undefined, title: string) => {
+  // Use parent_asin if available, otherwise use title
+  const stringToHash = parent_asin || title;
+  
+  // Create a simple hash from the string
+  const hash = stringToHash.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0);
+  }, 0);
+  
+  // Use the absolute value of hash to ensure positive number
+  const positiveHash = Math.abs(hash);
+  return `pattern-${positiveHash}`;
+};
+
 export const TextBasedBookCover: React.FC<BookCoverProps> = ({
   title,
   author,
@@ -50,7 +64,7 @@ export const TextBasedBookCover: React.FC<BookCoverProps> = ({
   const bgColor = backgroundColor || getColorFromAsin(parent_asin, title);
   const truncatedTitle = truncateText(title, 50);
   const truncatedAuthor = author ? truncateText(author, 30) : '';
-  const patternId = `pattern-${Math.random().toString(36).substr(2, 9)}`;
+  const patternId = getPatternId(parent_asin, title);
   const hasValidImage = imageUrl && !isPlaceholderImage(imageUrl);
 
   return (

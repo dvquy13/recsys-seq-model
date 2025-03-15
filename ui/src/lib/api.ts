@@ -37,4 +37,21 @@ export const recommendationsApi = {
 
     return response.json();
   }
-}; 
+};
+
+export async function getBookDetails(bookId: string) {
+  const response = await fetch(`${API_BASE_URL}/items/get_by_ids?debug=false`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify([bookId]),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch book details');
+  }
+
+  const data = await response.json();
+  return data.items[0];
+} 
