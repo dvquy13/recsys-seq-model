@@ -7,8 +7,12 @@ interface HeaderProps {
 
 export default function Header({ title }: HeaderProps) {
   return (
-    <header className="py-4">
-      <h1 className="text-4xl font-bold mb-4">{title}</h1>
+    <header className="border-b">
+      <div className="container px-4 py-6">
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          {title}
+        </h1>
+      </div>
     </header>
   );
 }

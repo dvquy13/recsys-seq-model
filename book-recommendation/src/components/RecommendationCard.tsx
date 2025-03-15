@@ -5,6 +5,9 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BookCover, isPlaceholderImage } from './BookCover';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { BookRecommendation } from '@/types/api';
 
 interface RecommendationCardProps {
@@ -25,27 +28,6 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
     score,
     parent_asin
   } = recommendation;
-
-  // Card styling - now entire card is clickable
-  const cardStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-    padding: '1rem',
-    width: '200px',
-    minHeight: '340px',
-    textAlign: 'center',
-    boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-  };
-
-  const hoverStyle: React.CSSProperties = {
-    transform: 'translateY(-5px)',
-    boxShadow: '2px 5px 15px rgba(0,0,0,0.15)',
-  };
 
   const handleCardClick = () => {
     try {
@@ -91,58 +73,57 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
   };
 
   return (
-    <div 
-      style={cardStyle} 
+    <Card
       onClick={handleCardClick}
-      onMouseOver={(e: React.MouseEvent<HTMLDivElement>) => {
-        Object.assign(e.currentTarget.style, hoverStyle);
-      }}
-      onMouseOut={(e: React.MouseEvent<HTMLDivElement>) => {
-        e.currentTarget.style.transform = '';
-        e.currentTarget.style.boxShadow = '2px 2px 12px rgba(0,0,0,0.1)';
-      }}
+      className={cn(
+        "w-[200px] min-h-[340px] cursor-pointer transition-all duration-200",
+        "hover:translate-y-[-5px] hover:shadow-lg"
+      )}
     >
-      <div>
-        {image_url.includes('placehold.co') ? (
-          <BookCover title={title} width={200} height={300} />
-        ) : (
-          <div style={{ 
-            position: 'relative', 
-            width: '200px', 
-            height: '300px', 
-            margin: '0 auto',
-            marginBottom: '20px',
-            overflow: 'hidden',
-            borderRadius: '4px'
-          }}>
-            <Image
-              src={image_url || '/placeholder.jpg'}
-              alt={title}
-              style={{ 
-                objectFit: 'cover',
-                width: '100%',
-                height: '100%'
-              }}
-              fill={true}
-              sizes="200px"
+      <CardContent className="p-4 flex flex-col items-center">
+        <div className="w-full aspect-[2/3] relative mb-4">
+          {isPlaceholderImage(image_url) ? (
+            <BookCover 
+              title={title} 
+              width={200} 
+              height={300} 
+              imageUrl={image_url || ''}
             />
-          </div>
-        )}
-        <div style={{ marginTop: '10px' }}>
-          <h3 style={{ marginTop: '0', fontSize: '1rem', fontWeight: 'bold' }}>{title}</h3>
-          {average_rating && (
-            <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>
-              Rating: {average_rating.toFixed(1)} ({rating_number} reviews)
-            </p>
-          )}
-          {price && price !== "None" && (
-            <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>
-              Price: ${price}
-            </p>
+          ) : (
+            <div className="relative w-full h-full overflow-hidden rounded-md">
+              <Image
+                src={image_url || '/placeholder.jpg'}
+                alt={title}
+                className="object-cover"
+                fill={true}
+                sizes="200px"
+              />
+            </div>
           )}
         </div>
-      </div>
-    </div>
+
+        <div className="w-full space-y-2 text-center">
+          <h3 className="font-semibold line-clamp-2">{title}</h3>
+          
+          {average_rating && (
+            <div className="flex items-center justify-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {average_rating.toFixed(1)} ★
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ({rating_number})
+              </span>
+            </div>
+          )}
+          
+          {price && price !== "None" && (
+            <Badge variant="outline" className="text-xs">
+              ${price}
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

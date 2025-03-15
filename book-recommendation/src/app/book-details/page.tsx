@@ -7,7 +7,19 @@ import BookDetails from '@/components/BookDetails';
 import Header from '@/components/Header';
 import type { BookRecommendation } from '@/types/api';
 
-function validateBookData(data: any): BookRecommendation {
+type UnvalidatedBookData = {
+  image_url?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  average_rating?: number | string | null;
+  rating_number?: number | string | null;
+  price?: string | null;
+  score?: number | string | null;
+  main_category?: string | null;
+  parent_asin?: string | null;
+};
+
+function validateBookData(data: UnvalidatedBookData): BookRecommendation {
   // Ensure all required fields are present and have correct types
   const validated: BookRecommendation = {
     image_url: String(data.image_url || ''),

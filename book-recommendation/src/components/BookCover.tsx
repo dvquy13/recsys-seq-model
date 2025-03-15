@@ -2,6 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface BookCoverProps {
   title: string;
@@ -59,105 +61,81 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const truncatedTitle = truncateText(title, 50);
   const truncatedAuthor = author ? truncateText(author, 30) : '';
   const patternId = `pattern-${Math.random().toString(36).substr(2, 9)}`;
+  const hasValidImage = imageUrl && !isPlaceholderImage(imageUrl);
 
   return (
-    <div
+    <Card
+      className={cn(
+        "relative overflow-hidden transition-shadow hover:shadow-lg",
+        hasValidImage ? "" : "flex flex-col justify-center items-center"
+      )}
       style={{
         width,
         height,
         backgroundColor: bgColor,
-        borderRadius: '4px',
-        padding: '10px',
-        position: 'relative',
-        boxShadow: '2px 2px 10px rgba(0,0,0,0.2)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
       }}
       data-testid="book-cover"
     >
-      {/* Decorative pattern */}
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          opacity: 0.1,
-        }}
-      >
-        <pattern
-          id={patternId}
-          x="0"
-          y="0"
-          width="20"
-          height="20"
-          patternUnits="userSpaceOnUse"
+      {/* Decorative pattern for non-image covers */}
+      {!hasValidImage && (
+        <svg
+          className="absolute inset-0 w-full h-full opacity-10"
+          aria-hidden="true"
         >
-          <circle cx="10" cy="10" r="1" fill={textColor} />
-        </pattern>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-      </svg>
+          <pattern
+            id={patternId}
+            x="0"
+            y="0"
+            width="20"
+            height="20"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="10" cy="10" r="1" fill={textColor} />
+          </pattern>
+          <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+        </svg>
+      )}
 
       {/* Content */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center'
-      }}>
-        <div
-          style={{
-            fontSize: Math.min(width * 0.10, 18),
-            color: textColor,
-            fontWeight: 'bold',
-            marginBottom: '8px',
-            fontFamily: 'InterVariable, Inter, sans-serif',
-            lineHeight: 1.2,
-            wordWrap: 'break-word',
-            maxWidth: '90%'
-          }}
-        >
-          {truncatedTitle}
-        </div>
-        {author && (
-          <div
+      {!hasValidImage && (
+        <div className="relative z-10 p-4 text-center">
+          <h3
+            className="text-base font-bold leading-tight mb-2"
             style={{
-              fontSize: Math.min(width * 0.06, 12),
               color: textColor,
-              opacity: 0.8,
-              fontFamily: 'InterVariable, Inter, sans-serif',
-              wordWrap: 'break-word',
+              fontSize: Math.min(width * 0.10, 18),
               maxWidth: '90%'
             }}
           >
-            by {truncatedAuthor}
-          </div>
-        )}
-      </div>
+            {truncatedTitle}
+          </h3>
+          {author && (
+            <p
+              className="text-sm opacity-80"
+              style={{
+                color: textColor,
+                fontSize: Math.min(width * 0.06, 12),
+                maxWidth: '90%'
+              }}
+            >
+              by {truncatedAuthor}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* Only render Image if we have a valid imageUrl */}
-      {imageUrl && !isPlaceholderImage(imageUrl) && (
+      {/* Book cover image */}
+      {hasValidImage && (
         <Image
           src={imageUrl}
           alt={title}
-          style={{ 
-            objectFit: 'cover',
-            width: '100%',
-            height: '100%'
-          }}
+          className="object-cover"
           fill={true}
-          sizes="200px"
+          sizes={`${width}px`}
+          priority={false}
         />
       )}
-    </div>
+    </Card>
   );
 };
 
