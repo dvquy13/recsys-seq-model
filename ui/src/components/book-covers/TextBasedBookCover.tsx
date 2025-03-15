@@ -136,7 +136,6 @@ export const TextBasedBookCover: React.FC<BookCoverProps> = ({
           className="object-cover w-full h-full"
           fill
           sizes={`${width}px`}
-          priority={false}
         />
       )}
     </Card>

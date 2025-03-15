@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Home from '../page'
 import { RecommendationsResponse } from '@/types/api'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Mock fetch globally
 global.fetch = jest.fn()
@@ -9,6 +10,25 @@ global.fetch = jest.fn()
 // Helper to create mock response
 const createMockResponse = (data: any) => {
   return { ok: true, json: () => Promise.resolve(data) }
+}
+
+// Create a new QueryClient for each test
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+})
+
+// Custom render function that includes QueryClientProvider
+const renderWithClient = (ui: React.ReactElement) => {
+  const testQueryClient = createTestQueryClient()
+  return render(
+    <QueryClientProvider client={testQueryClient}>
+      {ui}
+    </QueryClientProvider>
+  )
 }
 
 const mockRecommendationsResponse: RecommendationsResponse = {
@@ -39,10 +59,12 @@ describe('Home Page', () => {
   beforeEach(() => {
     // Clear mock calls between tests
     jest.clearAllMocks()
+    // Clear localStorage
+    localStorage.clear()
   })
 
   it('renders the user lookup form', () => {
-    render(<Home />)
+    renderWithClient(<Home />)
     
     expect(screen.getByText('User Lookup')).toBeInTheDocument()
     expect(screen.getByText('Enter a user ID to fetch their recommendations')).toBeInTheDocument()
@@ -51,7 +73,7 @@ describe('Home Page', () => {
   })
 
   it('handles user input correctly', () => {
-    render(<Home />)
+    renderWithClient(<Home />)
     
     const input = screen.getByLabelText('User ID')
     fireEvent.change(input, { target: { value: 'testuser123' } })
@@ -65,7 +87,7 @@ describe('Home Page', () => {
       new Promise(resolve => setTimeout(() => resolve(createMockResponse(mockRecommendationsResponse)), 100))
     )
 
-    render(<Home />)
+    renderWithClient(<Home />)
     
     const input = screen.getByLabelText('User ID')
     fireEvent.change(input, { target: { value: 'testuser123' } })
@@ -87,7 +109,7 @@ describe('Home Page', () => {
       Promise.resolve(createMockResponse(mockRecommendationsResponse))
     )
 
-    render(<Home />)
+    renderWithClient(<Home />)
     
     const input = screen.getByLabelText('User ID')
     fireEvent.change(input, { target: { value: 'testuser123' } })
@@ -107,7 +129,7 @@ describe('Home Page', () => {
       Promise.reject(new Error('API Error'))
     )
 
-    render(<Home />)
+    renderWithClient(<Home />)
     
     const input = screen.getByLabelText('User ID')
     fireEvent.change(input, { target: { value: 'testuser123' } })
@@ -124,7 +146,7 @@ describe('Home Page', () => {
       Promise.resolve(createMockResponse(mockRecommendationsResponse))
     )
 
-    render(<Home />)
+    renderWithClient(<Home />)
     
     const userId = 'testuser123'
     fireEvent.change(screen.getByLabelText('User ID'), { target: { value: userId } })
@@ -154,9 +176,13 @@ describe('Home Page', () => {
       Promise.resolve(createMockResponse(mockRecommendationsResponse))
     )
 
-    render(<Home />)
+    renderWithClient(<Home />)
     
-    // Don't set any user ID (leaving it empty)
+    // Set an empty user ID
+    const input = screen.getByLabelText('User ID')
+    fireEvent.change(input, { target: { value: '' } })
+    
+    // Submit the form
     fireEvent.click(screen.getByRole('button'))
 
     await waitFor(() => {
