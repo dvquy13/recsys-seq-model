@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
-import { BookCover } from "@/components/book-covers"
 import { recommendationsApi } from "@/lib/api"
+import { RecommendationCard } from "@/components/RecommendationCard"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased' // or 'dicebear'
@@ -15,30 +15,6 @@ const BOOK_COVER_IMPLEMENTATION = 'textBased' // or 'dicebear'
 interface RecommendationCardProps {
   recommendation: RecommendationsResponse['recommendations'][0]
 }
-
-const RecommendationCard = ({ recommendation }: RecommendationCardProps) => (
-  <Card className="p-4">
-    <div className="flex gap-4">
-      <BookCover
-        title={recommendation.title}
-        imageUrl={recommendation.image_url}
-        width={96}
-        height={144}
-        parent_asin={recommendation.parent_asin}
-        implementation={BOOK_COVER_IMPLEMENTATION}
-      />
-      <div>
-        <h4 className="font-semibold">{recommendation.title}</h4>
-        <p className="text-sm text-gray-500">{recommendation.subtitle}</p>
-        <div className="mt-2 text-sm">
-          <p>Rating: {recommendation.average_rating} ({recommendation.rating_number} reviews)</p>
-          {recommendation.price && <p>Price: ${recommendation.price}</p>}
-          <p>Score: {recommendation.score.toFixed(2)}</p>
-        </div>
-      </div>
-    </div>
-  </Card>
-)
 
 export default function Home() {
   const [userId, setUserId] = useState("")
