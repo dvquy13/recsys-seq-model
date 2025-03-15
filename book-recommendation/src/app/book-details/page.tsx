@@ -5,31 +5,20 @@ import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BookDetails from '@/components/BookDetails';
 import Header from '@/components/Header';
+import type { BookRecommendation } from '@/types/api';
 
-interface BookData {
-  image_url: string;
-  title: string;
-  subtitle: string;
-  average_rating: number;
-  rating_number: number;
-  price: string;
-  description?: string;
-  author?: string;
-  isbn?: string;
-}
-
-function validateBookData(data: any): BookData {
+function validateBookData(data: any): BookRecommendation {
   // Ensure all required fields are present and have correct types
-  const validated: BookData = {
+  const validated: BookRecommendation = {
     image_url: String(data.image_url || ''),
     title: String(data.title || 'Untitled'),
     subtitle: String(data.subtitle || ''),
     average_rating: Number(data.average_rating) || 0,
     rating_number: Number(data.rating_number) || 0,
     price: String(data.price || '0'),
-    description: data.description,
-    author: data.author,
-    isbn: data.isbn,
+    score: Number(data.score) || 0,
+    main_category: String(data.main_category || ''),
+    parent_asin: String(data.parent_asin || ''),
   };
 
   // Log validation results for debugging

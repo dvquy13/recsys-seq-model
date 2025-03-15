@@ -5,19 +5,10 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BookCover, isPlaceholderImage } from './BookCover';
+import type { BookRecommendation } from '@/types/api';
 
 interface BookDetailsProps {
-  data: {
-    image_url: string;
-    title: string;
-    subtitle: string;
-    average_rating: number;
-    rating_number: number;
-    price: string;
-    description?: string;
-    author?: string;
-    isbn?: string;
-  };
+  data: BookRecommendation;
 }
 
 const BookDetails: React.FC<BookDetailsProps> = ({ data }) => {
@@ -41,7 +32,6 @@ const BookDetails: React.FC<BookDetailsProps> = ({ data }) => {
             <div style={{ width: '300px', height: '400px' }}>
               <BookCover
                 title={data.title}
-                author={data.author}
                 width={300}
                 height={400}
               />
@@ -51,7 +41,7 @@ const BookDetails: React.FC<BookDetailsProps> = ({ data }) => {
               <Image
                 src={data.image_url}
                 alt={data.title}
-                fill
+                fill={true}
                 style={{ objectFit: 'cover' }}
               />
             </div>
@@ -59,30 +49,25 @@ const BookDetails: React.FC<BookDetailsProps> = ({ data }) => {
         </div>
         <div className="flex-grow">
           <h1 className="text-3xl font-bold mb-2">{data.title}</h1>
-          {data.author && (
-            <h2 className="text-xl text-gray-600 mb-4">by {data.author}</h2>
-          )}
           <p className="text-lg mb-4">{data.subtitle}</p>
           <div className="mb-4">
             <span className="font-bold">Rating: </span>
             {data.average_rating} ({data.rating_number} reviews)
           </div>
+          {data.price && data.price !== "None" && (
+            <div className="mb-4">
+              <span className="font-bold">Price: </span>
+              ${data.price}
+            </div>
+          )}
           <div className="mb-4">
-            <span className="font-bold">Price: </span>
-            {data.price}
+            <span className="font-bold">Category: </span>
+            {data.main_category}
           </div>
-          {data.description && (
-            <div>
-              <h3 className="text-xl font-bold mb-2">Description</h3>
-              <p className="text-gray-700">{data.description}</p>
-            </div>
-          )}
-          {data.isbn && (
-            <div className="mt-4">
-              <span className="font-bold">ISBN: </span>
-              {data.isbn}
-            </div>
-          )}
+          <div className="mb-4">
+            <span className="font-bold">ASIN: </span>
+            {data.parent_asin}
+          </div>
         </div>
       </div>
     </div>

@@ -24,9 +24,9 @@ describe('Book Details Flow', () => {
     average_rating: 4.5,
     rating_number: 100,
     price: '$9.99',
-    description: 'A great book for testing',
-    author: 'Test Author',
-    isbn: '1234567890',
+    score: 0.95,
+    main_category: 'Fiction',
+    parent_asin: 'B123456789'
   };
 
   beforeEach(() => {
@@ -43,8 +43,16 @@ describe('Book Details Flow', () => {
       
       fireEvent.click(card!);
       
-      const encodedData = encodeURIComponent(JSON.stringify(mockBook));
-      expect(mockRouter.push).toHaveBeenCalledWith(`/book-details?data=${encodedData}`);
+      // Get the actual URL that was called
+      const actualUrl = mockRouter.push.mock.calls[0][0];
+      expect(actualUrl).toMatch(/^\/book-details\?data=/);
+      
+      // Extract and parse the data parameter
+      const dataParam = decodeURIComponent(actualUrl.split('data=')[1]);
+      const actualData = JSON.parse(dataParam);
+      
+      // Compare the actual data with expected data
+      expect(actualData).toEqual(mockBook);
     });
   });
 
@@ -52,28 +60,23 @@ describe('Book Details Flow', () => {
     it('renders all book details correctly', () => {
       render(<BookDetails data={mockBook} />);
 
-      // Check if all book information is displayed
       expect(screen.getByText('Test Book')).toBeInTheDocument();
-      expect(screen.getByText('by Test Author')).toBeInTheDocument();
       expect(screen.getByText('A Test Book')).toBeInTheDocument();
       
-      // Check rating using a more flexible matcher
-      const ratingElement = screen.getByText(/Rating:/);
-      expect(ratingElement).toBeInTheDocument();
-      expect(ratingElement.parentElement).toHaveTextContent('4.5');
-      expect(ratingElement.parentElement).toHaveTextContent('100 reviews');
+      // Check rating
+      const ratingText = screen.getByText(/4\.5/);
+      expect(ratingText).toBeInTheDocument();
+      expect(screen.getByText(/100/)).toBeInTheDocument();
+      expect(screen.getByText(/reviews/)).toBeInTheDocument();
       
-      // Check price using a more flexible matcher
-      const priceElement = screen.getByText(/Price:/);
-      expect(priceElement).toBeInTheDocument();
-      expect(priceElement.parentElement).toHaveTextContent('$9.99');
+      // Check price
+      expect(screen.getByText(/\$9\.99/)).toBeInTheDocument();
       
-      expect(screen.getByText('A great book for testing')).toBeInTheDocument();
+      // Check category
+      expect(screen.getByText('Fiction')).toBeInTheDocument();
       
-      // Check ISBN using a more flexible matcher
-      const isbnElement = screen.getByText(/ISBN:/);
-      expect(isbnElement).toBeInTheDocument();
-      expect(isbnElement.parentElement).toHaveTextContent('1234567890');
+      // Check ASIN
+      expect(screen.getByText('B123456789')).toBeInTheDocument();
     });
 
     it('navigates back when back button is clicked', () => {
@@ -89,17 +92,19 @@ describe('Book Details Flow', () => {
       const minimalBook = {
         image_url: 'https://example.com/book.jpg',
         title: 'Test Book',
-        subtitle: 'A Test Book',
+        subtitle: '',
         average_rating: 4.5,
         rating_number: 100,
         price: '$9.99',
+        score: 0,
+        main_category: '',
+        parent_asin: ''
       };
 
       render(<BookDetails data={minimalBook} />);
 
       // Required fields should be present
       expect(screen.getByText('Test Book')).toBeInTheDocument();
-      expect(screen.getByText('A Test Book')).toBeInTheDocument();
       
       // Check rating using a more flexible matcher
       const ratingElement = screen.getByText(/Rating:/);
@@ -112,10 +117,9 @@ describe('Book Details Flow', () => {
       expect(priceElement).toBeInTheDocument();
       expect(priceElement.parentElement).toHaveTextContent('$9.99');
 
-      // Optional fields should not be present
-      expect(screen.queryByText(/by/)).not.toBeInTheDocument();
-      expect(screen.queryByText('Description')).not.toBeInTheDocument();
-      expect(screen.queryByText(/ISBN:/)).not.toBeInTheDocument();
+      // Check that empty fields are still rendered but without content
+      expect(screen.getByText(/Category:/).parentElement).toHaveTextContent('Category:');
+      expect(screen.getByText(/ASIN:/).parentElement).toHaveTextContent('ASIN:');
     });
   });
 
@@ -149,7 +153,22 @@ describe('Book Details Flow', () => {
       render(<BookDetailsPage />);
       
       expect(screen.getByText('Test Book')).toBeInTheDocument();
-      expect(screen.getByText('by Test Author')).toBeInTheDocument();
+      expect(screen.getByText('A Test Book')).toBeInTheDocument();
+      
+      // Check rating
+      const ratingText = screen.getByText(/4\.5/);
+      expect(ratingText).toBeInTheDocument();
+      expect(screen.getByText(/100/)).toBeInTheDocument();
+      expect(screen.getByText(/reviews/)).toBeInTheDocument();
+      
+      // Check price
+      expect(screen.getByText(/\$9\.99/)).toBeInTheDocument();
+      
+      // Check category
+      expect(screen.getByText('Fiction')).toBeInTheDocument();
+      
+      // Check ASIN
+      expect(screen.getByText('B123456789')).toBeInTheDocument();
     });
   });
 }); 

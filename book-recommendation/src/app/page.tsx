@@ -5,36 +5,36 @@ import React from 'react';
 import { useState } from 'react';
 import Header from '@/components/Header';
 import RecommendationCard from '@/components/RecommendationCard';
-import type { Recommendation } from '@/components/RecommendationCard';
+import type { BookRecommendation, RecommendationResponse } from '@/types/api';
 
 export default function Home() {
   const [userId, setUserId] = useState('AE224PFXAEAT66IXX43GRJSWHXCA');
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [recommendations, setRecommendations] = useState<BookRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchRecommendations = (userId: string) => {
+  const fetchRecommendations = async (userId: string) => {
     setLoading(true);
-    fetch('http://localhost:8000/recs/retrieve?count=10&debug=false', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        accept: 'application/json',
-      },
-      body: JSON.stringify({
-        user_ids_raw: [userId],
-        item_seq_raw: [['0439064864', '043935806X']],
-        candidate_items_raw: [],
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setRecommendations(data.recommendations);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching recommendations:', error);
-        setLoading(false);
+    try {
+      const response = await fetch('http://localhost:8000/recs/retrieve?count=10&debug=false', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          user_ids_raw: [userId],
+          item_seq_raw: [['0439064864', '043935806X']],
+          candidate_items_raw: [],
+        }),
       });
+      
+      const data: RecommendationResponse = await response.json();
+      setRecommendations(data.recommendations);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
