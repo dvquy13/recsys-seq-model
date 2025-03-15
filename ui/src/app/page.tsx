@@ -52,8 +52,7 @@ export default function Home() {
                 id="userId"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter user ID"
-                required
+                placeholder="Enter user ID (optional)"
               />
             </div>
             <Button type="submit" disabled={loading}>

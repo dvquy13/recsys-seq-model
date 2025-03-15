@@ -159,4 +159,38 @@ describe('Home Page', () => {
       )
     })
   })
+
+  it('handles empty user ID correctly', async () => {
+    (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve(createMockResponse(mockRecommendationsResponse))
+    )
+
+    render(<Home />)
+    
+    // Don't set any user ID (leaving it empty)
+    fireEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      // Verify API call is made with empty user ID
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:8000/recs/retrieve?count=10&debug=false',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            user_ids_raw: [''],
+            item_seq_raw: [[]],
+            candidate_items_raw: []
+          })
+        })
+      )
+
+      // Verify recommendations are displayed
+      expect(screen.getByText('Recommendations')).toBeInTheDocument()
+      expect(screen.getByText('Test Book')).toBeInTheDocument()
+    })
+  })
 }) 
