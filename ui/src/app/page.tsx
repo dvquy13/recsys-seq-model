@@ -70,7 +70,7 @@ export default function Home() {
           {recommendations && (
             <div className="mt-6 space-y-4">
               <h3 className="text-lg font-semibold">Recommendations</h3>
-              <div className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {recommendations.recommendations.map((rec, index) => (
                   <RecommendationCard key={index} recommendation={rec} />
                 ))}

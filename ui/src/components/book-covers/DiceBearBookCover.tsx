@@ -49,10 +49,9 @@ export const DiceBearBookCover: React.FC<BookCoverProps> = ({
       <Image
         src={coverImage}
         alt={title}
-        className="object-cover"
-        fill={true}
-        sizes={`${width}px`}
-        priority={false}
+        className="object-contain w-full h-full"
+        width={width}
+        height={height}
       />
     </Card>
   );
