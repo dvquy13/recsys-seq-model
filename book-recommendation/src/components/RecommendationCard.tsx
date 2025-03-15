@@ -1,6 +1,10 @@
 // components/RecommendationCard.tsx
+'use client';
+
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { BookCover, isPlaceholderImage } from './BookCover';
 
 export interface Recommendation {
   image_url: string;
@@ -54,20 +58,34 @@ const RecommendationCard = ({ recommendation }: { recommendation: Recommendation
     <div 
       style={cardStyle} 
       onClick={handleCardClick}
-      onMouseOver={(e) => {
+      onMouseOver={(e: React.MouseEvent<HTMLDivElement>) => {
         Object.assign(e.currentTarget.style, hoverStyle);
       }}
-      onMouseOut={(e) => {
+      onMouseOut={(e: React.MouseEvent<HTMLDivElement>) => {
         e.currentTarget.style.transform = '';
         e.currentTarget.style.boxShadow = '2px 2px 12px rgba(0,0,0,0.1)';
       }}
     >
       <div>
-        <img
-          src={recommendation.image_url}
-          alt={recommendation.title}
-          style={{ width: '150px', height: '200px', objectFit: 'cover' }}
-        />
+        {isPlaceholderImage(recommendation.image_url) ? (
+          <div style={{ margin: '0 auto', width: '150px', height: '200px' }}>
+            <BookCover
+              title={recommendation.title}
+              author={recommendation.author}
+              width={150}
+              height={200}
+            />
+          </div>
+        ) : (
+          <div style={{ position: 'relative', width: '150px', height: '200px', margin: '0 auto' }}>
+            <Image
+              src={recommendation.image_url}
+              alt={recommendation.title}
+              style={{ objectFit: 'cover' }}
+              fill={true}
+            />
+          </div>
+        )}
         <h3>{recommendation.title}</h3>
         <p>{recommendation.subtitle}</p>
         <p>

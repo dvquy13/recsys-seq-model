@@ -1,55 +1,58 @@
 // src/app/book-details/page.tsx
 "use client";
 
+import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import BookDetails from '../../components/BookDetails';
-import Header from '../../components/Header';
+import BookDetails from '@/components/BookDetails';
+import Header from '@/components/Header';
 
-export default function BookDetailsPage() {
+function BookDetailsContent() {
   const searchParams = useSearchParams();
   const encodedData = searchParams.get('data');
   
   if (!encodedData) {
-    return <div>No book details available</div>;
+    return (
+      <div>
+        <Header title="Error" />
+        <div className="container mx-auto p-4">
+          <p>No book data provided</p>
+        </div>
+      </div>
+    );
   }
   
   try {
-    // First, try to safely decode the URI component
-    const decodedData = decodeURIComponent(encodedData);
-    
-    // Handle potential control characters but preserve newlines
-    const sanitizedData = decodedData.replace(/[\u0000-\u001F\u007F-\u009F]/g, function(match) {
-      // Preserve newline characters in the JSON string
-      if (match === '\n' || match === '\\n') return match;
-      return '';
-    });
-    
-    const bookData = JSON.parse(sanitizedData);
+    const bookData = JSON.parse(decodeURIComponent(encodedData));
     
     return (
       <div>
         <Header title="Book Details" />
-        <BookDetails book={bookData} />
+        <BookDetails data={bookData} />
       </div>
     );
-  } catch (error) {
-    console.error('Error parsing book data:', error);
+  } catch {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <h2>Error loading book details</h2>
-        <p>There was a problem parsing the book data.</p>
-        <button 
-          onClick={() => window.history.back()}
-          style={{ 
-            padding: '0.5rem 1rem', 
-            fontSize: '1rem', 
-            cursor: 'pointer',
-            marginTop: '1rem' 
-          }}
-        >
-          ← Back to Recommendations
-        </button>
+      <div>
+        <Header title="Error" />
+        <div className="container mx-auto p-4">
+          <p>Error parsing book data</p>
+        </div>
       </div>
     );
   }
+}
+
+export default function BookDetailsPage() {
+  return (
+    <Suspense fallback={
+      <div>
+        <Header title="Loading..." />
+        <div className="container mx-auto p-4">
+          <p>Loading book details...</p>
+        </div>
+      </div>
+    }>
+      <BookDetailsContent />
+    </Suspense>
+  );
 }

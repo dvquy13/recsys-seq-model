@@ -1,13 +1,15 @@
 // src/app/page.tsx
 "use client";
 
+import React from 'react';
 import { useState } from 'react';
-import Header from '../components/Header';
-import RecommendationCard from '../components/RecommendationCard';
+import Header from '@/components/Header';
+import RecommendationCard from '@/components/RecommendationCard';
+import type { Recommendation } from '@/components/RecommendationCard';
 
 export default function Home() {
   const [userId, setUserId] = useState('AE224PFXAEAT66IXX43GRJSWHXCA');
-  const [recommendations, setRecommendations] = useState([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchRecommendations = (userId: string) => {
@@ -43,39 +45,39 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <main>
       <Header title="Book Recommendations" />
-      <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Enter User ID"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          style={{ padding: '0.5rem', fontSize: '1rem', width: '300px' }}
-        />
-        <button
-          type="submit"
-          style={{ padding: '0.5rem 1rem', marginLeft: '0.5rem', fontSize: '1rem' }}
-        >
-          Submit
-        </button>
-      </form>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div style={gridStyle}>
-          {recommendations.map((rec, index) => (
-            <RecommendationCard key={index} recommendation={rec} />
-          ))}
-        </div>
-      )}
-    </div>
+      <div style={{ padding: '2rem' }}>
+        <form onSubmit={handleSubmit} role="form" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Enter User ID"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            style={{ padding: '0.5rem', fontSize: '1rem', width: '300px' }}
+          />
+          <button
+            type="submit"
+            style={{ padding: '0.5rem 1rem', marginLeft: '0.5rem', fontSize: '1rem' }}
+          >
+            Get Recommendations
+          </button>
+        </form>
+        {loading ? (
+          <p>Loading recommendations...</p>
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '2rem',
+            justifyContent: 'center',
+          }}>
+            {recommendations.map((recommendation, index) => (
+              <RecommendationCard key={index} recommendation={recommendation} />
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
-
-// Simple grid layout style
-const gridStyle = {
-  display: 'flex',
-  flexWrap: 'wrap' as 'wrap',
-  gap: '1rem',
-};
