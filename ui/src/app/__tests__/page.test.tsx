@@ -208,4 +208,135 @@ describe('Home Page', () => {
       expect(screen.getByText('Test Book')).toBeInTheDocument()
     })
   })
+
+  it('persists user ID in localStorage after submission', async () => {
+    const user = userEvent.setup()
+    ;(global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve(createMockResponse(mockRecommendationsResponse))
+    )
+
+    renderWithClient(<Home />)
+    
+    const userId = 'testuser123'
+    await user.type(screen.getByLabelText('User ID'), userId)
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(localStorage.getItem('last-submitted-user-id')).toBe(userId)
+    })
+  })
+
+  it('loads persisted user ID from localStorage on mount', async () => {
+    const persistedUserId = 'persisteduser123'
+    localStorage.setItem('last-submitted-user-id', persistedUserId)
+
+    ;(global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve(createMockResponse(mockRecommendationsResponse))
+    )
+
+    renderWithClient(<Home />)
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/recs/retrieve'),
+        expect.objectContaining({
+          body: expect.stringContaining(persistedUserId)
+        })
+      )
+    })
+  })
+
+  it('uses React Query cache for subsequent requests', async () => {
+    const user = userEvent.setup()
+    const queryClient = createTestQueryClient()
+    
+    ;(global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve(createMockResponse(mockRecommendationsResponse))
+    )
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    const userId = 'testuser123'
+    await user.type(screen.getByLabelText('User ID'), userId)
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Book')).toBeInTheDocument()
+    })
+
+    ;(global.fetch as jest.Mock).mockClear()
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    expect(screen.getByText('Test Book')).toBeInTheDocument()
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('maintains cache across multiple user searches', async () => {
+    const user = userEvent.setup()
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: Infinity,
+          staleTime: Infinity,
+        },
+      },
+    })
+
+    // Pre-populate the cache for user1
+    queryClient.setQueryData(['recommendations', 'user1'], {
+      ...mockRecommendationsResponse,
+      recommendations: [{...mockRecommendationsResponse.recommendations[0], title: 'User 1 Book'}]
+    })
+
+    // Pre-populate the cache for user2
+    queryClient.setQueryData(['recommendations', 'user2'], {
+      ...mockRecommendationsResponse,
+      recommendations: [{...mockRecommendationsResponse.recommendations[0], title: 'User 2 Book'}]
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Search for first user
+    await user.type(screen.getByLabelText('User ID'), 'user1')
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByText('User 1 Book')).toBeInTheDocument()
+    })
+
+    // Search for second user
+    await user.clear(screen.getByLabelText('User ID'))
+    await user.type(screen.getByLabelText('User ID'), 'user2')
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByText('User 2 Book')).toBeInTheDocument()
+    })
+
+    // Clear fetch mock
+    ;(global.fetch as jest.Mock).mockClear()
+
+    // Go back to first user
+    await user.clear(screen.getByLabelText('User ID'))
+    await user.type(screen.getByLabelText('User ID'), 'user1')
+    await user.click(screen.getByRole('button'))
+
+    // Verify that data comes from cache without API call
+    expect(screen.getByText('User 1 Book')).toBeInTheDocument()
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
 }) 

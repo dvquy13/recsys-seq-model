@@ -61,7 +61,7 @@ export default async function BookPage({ params }: BookPageProps) {
                 <p className="text-lg text-muted-foreground">{book.subtitle}</p>
               )}
               <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
                 <span className="text-lg font-semibold">{book.average_rating}</span>
                 <span className="text-muted-foreground">
                   ({book.rating_number.toLocaleString()} ratings)
