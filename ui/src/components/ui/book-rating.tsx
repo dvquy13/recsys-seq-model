@@ -9,12 +9,16 @@ interface BookRatingProps {
 }
 
 export function BookRating({ 
-  rating, 
-  ratingCount, 
+  rating = 0, 
+  ratingCount = 0, 
   size = 'md',
   className = '',
   maxStars = 5
 }: BookRatingProps) {
+  // Ensure values are numbers to prevent type errors
+  const safeRating = typeof rating === 'number' ? rating : 0;
+  const safeRatingCount = typeof ratingCount === 'number' ? ratingCount : 0;
+
   // Size configurations
   const config = {
     sm: {
@@ -53,15 +57,15 @@ export function BookRating({
     // - Full star: rating >= starValue
     // - Partial star: starValue - 1 < rating < starValue
     // - Empty star: rating <= starValue - 1
-    const isFull = rating >= starValue;
-    const isEmpty = rating <= starValue - 1;
+    const isFull = safeRating >= starValue;
+    const isEmpty = safeRating <= starValue - 1;
     const partialFill = !isFull && !isEmpty;
     
     // Calculate the fill percentage for partial stars
     let fillPercentage = 0;
     if (partialFill) {
       // Calculate raw percentage
-      const rawPercentage = (rating - (starValue - 1)) * 100;
+      const rawPercentage = (safeRating - (starValue - 1)) * 100;
       // Round to nearest 10%
       fillPercentage = Math.round(rawPercentage / 10) * 10;
     }
@@ -81,10 +85,10 @@ export function BookRating({
       <div className={`flex items-center ${gap}`}>
         {stars}
         <span className={`${textSize} ${spacing}`}>
-          {rating.toFixed(1)}
+          {safeRating.toFixed(1)}
         </span>
         <span className={`text-muted-foreground ${textSize}`}>
-          ({ratingCount.toLocaleString()} ratings)
+          ({safeRatingCount.toLocaleString()} ratings)
         </span>
       </div>
       

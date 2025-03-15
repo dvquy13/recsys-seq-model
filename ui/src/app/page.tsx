@@ -10,6 +10,7 @@ import type { RecommendationsResponse } from "@/types/api"
 import { recommendationsApi } from "@/lib/api"
 import { Container, Wrapper } from "@/components/ui/container"
 import { RecommendationsGrid } from "@/components/RecommendationsGrid"
+import { RecentlyViewedGrid } from "@/components/RecentlyViewedGrid"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
@@ -67,6 +68,9 @@ export default function Home() {
                 {error.message}
               </div>
             )}
+
+            {/* Display Recently Viewed Grid */}
+            <RecentlyViewedGrid />
 
             {recommendations && (
               <RecommendationsGrid

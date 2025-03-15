@@ -9,6 +9,7 @@ import { getConfig } from '@/lib/config';
 import { RecommendationsGrid } from '@/components/RecommendationsGrid';
 import { BookRating } from '@/components/ui/book-rating';
 import { BookPrice } from '@/components/ui/book-price';
+import { BookViewTracker } from '@/components/BookViewTracker';
 
 interface BookPageProps {
   params: {
@@ -44,6 +45,8 @@ export default async function BookPage({ params }: BookPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BookViewTracker book={book} />
+      
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-8">
