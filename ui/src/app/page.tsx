@@ -11,6 +11,7 @@ import { recommendationsApi } from "@/lib/api"
 import { Container, Wrapper } from "@/components/ui/container"
 import { RecommendationsGrid } from "@/components/RecommendationsGrid"
 import { RecentlyViewedGrid } from "@/components/RecentlyViewedGrid"
+import { clearRecentlyViewedBooks } from "@/lib/recentlyViewed"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
@@ -35,6 +36,12 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    // If the user ID has changed, clear the recently viewed books
+    if (userId !== submittedUserId) {
+      clearRecentlyViewedBooks();
+    }
+    
     localStorage.setItem(STORAGE_KEY, userId)
     setSubmittedUserId(userId)
   }

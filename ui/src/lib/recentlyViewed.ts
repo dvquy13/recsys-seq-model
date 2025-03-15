@@ -3,6 +3,17 @@ import type { Recommendation } from '@/types/api';
 const STORAGE_KEY = 'recently-viewed-books';
 const MAX_ITEMS = 10; // Maximum number of recently viewed books to store
 
+// Custom event name for recently viewed changes
+export const RECENTLY_VIEWED_CHANGE_EVENT = 'recently-viewed-change';
+
+// Function to dispatch the custom event
+function dispatchRecentlyViewedChangeEvent() {
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent(RECENTLY_VIEWED_CHANGE_EVENT);
+    window.dispatchEvent(event);
+  }
+}
+
 export interface RecentlyViewedBook extends Recommendation {
   viewedAt: number; // Timestamp when the book was viewed
 }
@@ -76,6 +87,9 @@ export function addRecentlyViewedBook(book: Recommendation): void {
     
     // Save to localStorage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    
+    // Dispatch the change event
+    dispatchRecentlyViewedChangeEvent();
   } catch (error) {
     console.error('Failed to add book to recently viewed', error);
   }
@@ -90,4 +104,7 @@ export function clearRecentlyViewedBooks(): void {
   }
   
   localStorage.removeItem(STORAGE_KEY);
+  
+  // Dispatch the change event
+  dispatchRecentlyViewedChangeEvent();
 } 

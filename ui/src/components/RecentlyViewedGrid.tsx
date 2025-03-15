@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { RecommendationsGrid } from './RecommendationsGrid';
 import type { Recommendation } from '@/types/api';
-import { getRecentlyViewedBooks, type RecentlyViewedBook } from '@/lib/recentlyViewed';
+import { 
+  getRecentlyViewedBooks, 
+  type RecentlyViewedBook,
+  RECENTLY_VIEWED_CHANGE_EVENT 
+} from '@/lib/recentlyViewed';
+
+// Maximum number of recently viewed items to display
+const MAX_DISPLAY_ITEMS = 3;
+
+// Storage key used in recentlyViewed.ts
+const STORAGE_KEY = 'recently-viewed-books';
 
 export function RecentlyViewedGrid() {
   const [recentlyViewed, setRecentlyViewed] = useState<Recommendation[]>([]);
-  
-  useEffect(() => {
+
+  const loadRecentlyViewed = () => {
     // Get recently viewed books and sort by viewedAt (most recent first)
     const books = getRecentlyViewedBooks()
       .sort((a, b) => b.viewedAt - a.viewedAt);
@@ -32,7 +42,34 @@ export function RecentlyViewedGrid() {
         score: book.score || 0
       }));
     
-    setRecentlyViewed(recommendations);
+    // Only take the first MAX_DISPLAY_ITEMS
+    setRecentlyViewed(recommendations.slice(0, MAX_DISPLAY_ITEMS));
+  };
+  
+  useEffect(() => {
+    // Load recently viewed books initially
+    loadRecentlyViewed();
+    
+    // Set up listeners for both storage events and our custom event
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY || event.key === null) {
+        loadRecentlyViewed();
+      }
+    };
+    
+    const handleRecentlyViewedChange = () => {
+      loadRecentlyViewed();
+    };
+    
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(RECENTLY_VIEWED_CHANGE_EVENT, handleRecentlyViewedChange);
+    
+    // Clean up event listeners on unmount
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(RECENTLY_VIEWED_CHANGE_EVENT, handleRecentlyViewedChange);
+    };
   }, []);
   
   // Don't render if there are no recently viewed books
