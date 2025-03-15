@@ -13,7 +13,8 @@ export const recommendationsApi = {
   async getRecommendations(
     userId: string,
     count: number = 10,
-    debug: boolean = false
+    debug: boolean = false,
+    itemSeqRaw: string[][] = [[]]
   ): Promise<RecommendationsResponse> {
     const response = await fetch(
       `${API_BASE_URL}/recs/retrieve?count=${count}&debug=${debug}`,
@@ -25,7 +26,7 @@ export const recommendationsApi = {
         },
         body: JSON.stringify({
           user_ids_raw: [userId],
-          item_seq_raw: [[]],
+          item_seq_raw: itemSeqRaw,
           candidate_items_raw: []
         } as RecommendationsRequest)
       }

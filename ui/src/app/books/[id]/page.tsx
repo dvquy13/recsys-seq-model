@@ -19,7 +19,8 @@ interface BookPageProps {
 
 export async function generateMetadata({ params }: BookPageProps): Promise<Metadata> {
   try {
-    const book = await getBookDetails(params.id);
+    const resolvedParams = await params;
+    const book = await getBookDetails(resolvedParams.id);
     return {
       title: book.title,
       description: book.subtitle || `Details for ${book.title}`,
@@ -35,7 +36,8 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
 export default async function BookPage({ params }: BookPageProps) {
   let book;
   try {
-    book = await getBookDetails(params.id);
+    const resolvedParams = await params;
+    book = await getBookDetails(resolvedParams.id);
   } catch (error) {
     notFound();
     return undefined;

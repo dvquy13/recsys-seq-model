@@ -12,6 +12,11 @@ import { Container, Wrapper } from "@/components/ui/container"
 import { RecommendationsGrid } from "@/components/RecommendationsGrid"
 import { RecentlyViewedGrid } from "@/components/RecentlyViewedGrid"
 import { clearRecentlyViewedBooks } from "@/lib/recentlyViewed"
+import { 
+  getCachedPersonalizedRecs, 
+  PERSONALIZED_RECS_UPDATED_EVENT,
+  clearPersonalizedRecs
+} from "@/lib/personalizedRecs"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
@@ -27,24 +32,59 @@ export default function Home() {
     }
     return null
   })
+  const [personalizedRecs, setPersonalizedRecs] = useState<RecommendationsResponse | null>(null)
+  // Add this state to control when to show loading state
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
+  // Standard recommendations from API
   const { data: recommendations, isLoading, error } = useQuery({
     queryKey: ['recommendations', submittedUserId],
     queryFn: () => recommendationsApi.getRecommendations(submittedUserId || ''),
     enabled: submittedUserId !== null,
   })
 
+  // After hydration is complete, set isInitialLoad to false
+  useEffect(() => {
+    setIsInitialLoad(false)
+  }, [])
+
+  // Load personalized recommendations initially and when updated
+  useEffect(() => {
+    // Load initially
+    setPersonalizedRecs(getCachedPersonalizedRecs())
+    
+    // Set up listener for personalized recommendations updates
+    const handlePersonalizedRecsUpdated = () => {
+      setPersonalizedRecs(getCachedPersonalizedRecs())
+    }
+    
+    window.addEventListener(PERSONALIZED_RECS_UPDATED_EVENT, handlePersonalizedRecsUpdated)
+    
+    return () => {
+      window.removeEventListener(PERSONALIZED_RECS_UPDATED_EVENT, handlePersonalizedRecsUpdated)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
-    // If the user ID has changed, clear the recently viewed books
+    // If the user ID has changed, clear the recently viewed books and personalized recs
     if (userId !== submittedUserId) {
       clearRecentlyViewedBooks();
+      clearPersonalizedRecs();
     }
     
     localStorage.setItem(STORAGE_KEY, userId)
     setSubmittedUserId(userId)
   }
+
+  // Use personalized recommendations if available, otherwise use the standard ones
+  const displayRecommendations = personalizedRecs && personalizedRecs.recommendations && personalizedRecs.recommendations.length > 0
+    ? personalizedRecs 
+    : recommendations;
+
+  // Determine if we're showing personalized recommendations
+  const isPersonalized = !!(personalizedRecs && personalizedRecs.recommendations && personalizedRecs.recommendations.length > 0);
 
   return (
     <Container className="py-6">
@@ -65,8 +105,8 @@ export default function Home() {
                   placeholder="Enter user ID (optional)"
                 />
               </div>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Loading...' : 'Submit'}
+              <Button type="submit" disabled={!isInitialLoad && isLoading}>
+                {!isInitialLoad && isLoading ? 'Loading...' : 'Submit'}
               </Button>
             </form>
 
@@ -79,10 +119,10 @@ export default function Home() {
             {/* Display Recently Viewed Grid */}
             <RecentlyViewedGrid />
 
-            {recommendations && (
+            {displayRecommendations && (
               <RecommendationsGrid
-                title="Recommendations"
-                recommendations={recommendations.recommendations}
+                title={isPersonalized ? "Recommendations Based on Your Browsing" : "Recommendations"}
+                recommendations={displayRecommendations.recommendations}
               />
             )}
           </CardContent>

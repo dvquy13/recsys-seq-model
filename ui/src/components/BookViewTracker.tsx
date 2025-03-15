@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import type { Recommendation } from '@/types/api';
 import { addRecentlyViewedBook } from '@/lib/recentlyViewed';
+import { updatePersonalizedRecs } from '@/lib/personalizedRecs';
 
 interface BookViewTrackerProps {
   book: Recommendation;
@@ -10,23 +11,39 @@ interface BookViewTrackerProps {
 
 export function BookViewTracker({ book }: BookViewTrackerProps) {
   useEffect(() => {
-    // Make sure the book has all required properties before saving
-    if (book && typeof book.title === 'string' && typeof book.parent_asin === 'string') {
-      // Ensure all required properties exist with defaults if needed
-      const validBook: Recommendation = {
-        ...book,
-        average_rating: typeof book.average_rating === 'number' ? book.average_rating : 0,
-        rating_number: typeof book.rating_number === 'number' ? book.rating_number : 0,
-        price: book.price || null,
-        subtitle: book.subtitle || '',
-        main_category: book.main_category || 'Unknown',
-        score: typeof book.score === 'number' ? book.score : 0,
-        image_url: book.image_url || ''
-      };
-      
-      // Add the validated book to recently viewed
-      addRecentlyViewedBook(validBook);
-    }
+    const trackBookView = async () => {
+      // Make sure the book has all required properties before saving
+      if (book && typeof book.title === 'string' && typeof book.parent_asin === 'string') {
+        // Ensure all required properties exist with defaults if needed
+        const validBook: Recommendation = {
+          ...book,
+          average_rating: typeof book.average_rating === 'number' ? book.average_rating : 0,
+          rating_number: typeof book.rating_number === 'number' ? book.rating_number : 0,
+          price: book.price || null,
+          subtitle: book.subtitle || '',
+          main_category: book.main_category || 'Unknown',
+          score: typeof book.score === 'number' ? book.score : 0,
+          image_url: book.image_url || ''
+        };
+        
+        // Add the validated book to recently viewed
+        addRecentlyViewedBook(validBook);
+        
+        // Get the current user ID from localStorage
+        const userId = localStorage.getItem('last-submitted-user-id');
+        
+        // If a user ID is available, update personalized recommendations
+        if (userId) {
+          // Update personalized recommendations in background
+          updatePersonalizedRecs(userId).catch(error => {
+            console.error('Failed to update personalized recommendations:', error);
+          });
+        }
+      }
+    };
+    
+    // Execute the tracking function
+    trackBookView();
   }, [book]);
 
   // This component doesn't render anything
