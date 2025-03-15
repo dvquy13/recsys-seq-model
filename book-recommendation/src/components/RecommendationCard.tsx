@@ -44,14 +44,43 @@ const RecommendationCard = ({ recommendation }: { recommendation: Recommendation
   };
 
   const handleCardClick = () => {
-    // Remove any control characters from the recommendation object
-    const sanitizedRecommendation = JSON.parse(
-      JSON.stringify(recommendation).replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-    );
-    
-    // Encode the sanitized recommendation data to pass through the URL
-    const encodedData = encodeURIComponent(JSON.stringify(sanitizedRecommendation));
-    router.push(`/book-details?data=${encodedData}`);
+    try {
+      // For placeholder images, generate a BookCover-style URL
+      const imageUrl = isPlaceholderImage(recommendation.image_url) 
+        ? '' // Empty URL will trigger BookCover in the details view
+        : recommendation.image_url;
+
+      // Ensure all required fields are present and have the correct type
+      const validatedRecommendation = {
+        image_url: imageUrl,
+        title: recommendation.title || 'Untitled',
+        subtitle: recommendation.subtitle || '',
+        average_rating: Number(recommendation.average_rating) || 0,
+        rating_number: Number(recommendation.rating_number) || 0,
+        price: String(recommendation.price || '0'),
+        description: recommendation.description,
+        author: recommendation.author,
+        isbn: recommendation.isbn,
+      };
+      
+      // Encode the data for URL
+      const encodedData = encodeURIComponent(JSON.stringify(validatedRecommendation));
+      
+      router.push(`/book-details?data=${encodedData}`);
+    } catch (error) {
+      console.error('Error preparing book data:', error);
+      // Provide a fallback with minimal data
+      const fallbackData = {
+        image_url: '',
+        title: recommendation.title || 'Untitled',
+        subtitle: '',
+        average_rating: 0,
+        rating_number: 0,
+        price: '0',
+      };
+      const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
+      router.push(`/book-details?data=${encodedFallback}`);
+    }
   };
 
   return (
