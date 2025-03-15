@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,29 +14,32 @@ import { Container, Wrapper } from "@/components/ui/container"
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
 
+const STORAGE_KEY = 'last-submitted-user-id'
+
 interface RecommendationCardProps {
   recommendation: RecommendationsResponse['recommendations'][0]
 }
 
 export default function Home() {
   const [userId, setUserId] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [submittedUserId, setSubmittedUserId] = useState<string | null>(() => {
+    // Initialize from localStorage if we're in the browser
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEY)
+    }
+    return null
+  })
+
+  const { data: recommendations, isLoading, error } = useQuery({
+    queryKey: ['recommendations', submittedUserId],
+    queryFn: () => recommendationsApi.getRecommendations(submittedUserId || ''),
+    enabled: submittedUserId !== null,
+  })
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const data = await recommendationsApi.getRecommendations(userId)
-      setRecommendations(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch recommendations')
-    } finally {
-      setLoading(false)
-    }
+    localStorage.setItem(STORAGE_KEY, userId)
+    setSubmittedUserId(userId)
   }
 
   return (
@@ -57,14 +61,14 @@ export default function Home() {
                   placeholder="Enter user ID (optional)"
                 />
               </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Loading...' : 'Submit'}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Loading...' : 'Submit'}
               </Button>
             </form>
 
-            {error && (
+            {error instanceof Error && (
               <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md">
-                {error}
+                {error.message}
               </div>
             )}
 
