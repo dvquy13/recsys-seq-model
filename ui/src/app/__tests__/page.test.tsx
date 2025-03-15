@@ -119,8 +119,9 @@ describe('Home Page', () => {
     await waitFor(() => {
       expect(screen.getByText('Recommendations')).toBeInTheDocument()
       expect(screen.getByText('Test Book')).toBeInTheDocument()
-      expect(screen.getByText('Rating: 4.5 (100 reviews)')).toBeInTheDocument()
-      expect(screen.getByText('Price: $9.99')).toBeInTheDocument()
+      expect(screen.getByText('4.5')).toBeInTheDocument()
+      expect(screen.getByText('(100 ratings)')).toBeInTheDocument()
+      expect(screen.getByText('$9.99')).toBeInTheDocument()
     })
   })
 

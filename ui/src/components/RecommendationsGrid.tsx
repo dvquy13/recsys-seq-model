@@ -30,7 +30,8 @@ export function RecommendationsGrid({
           {recommendations.map((recommendation, index) => (
             <RecommendationCard 
               key={`${recommendation.parent_asin}-${index}`} 
-              recommendation={recommendation} 
+              recommendation={recommendation}
+              showScore={false}
             />
           ))}
         </div>

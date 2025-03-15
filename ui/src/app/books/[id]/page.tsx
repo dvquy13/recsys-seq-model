@@ -4,10 +4,11 @@ import { notFound } from 'next/navigation';
 import { getBookDetails } from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star } from 'lucide-react';
 import { BookCover } from '@/components/book-covers';
 import { getConfig } from '@/lib/config';
 import { RecommendationsGrid } from '@/components/RecommendationsGrid';
+import { BookRating } from '@/components/ui/book-rating';
+import { BookPrice } from '@/components/ui/book-price';
 
 interface BookPageProps {
   params: {
@@ -61,25 +62,35 @@ export default async function BookPage({ params }: BookPageProps) {
               {book.subtitle && (
                 <p className="text-lg text-muted-foreground">{book.subtitle}</p>
               )}
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
-                <span className="text-lg font-semibold">{book.average_rating}</span>
-                <span className="text-muted-foreground">
-                  ({book.rating_number.toLocaleString()} ratings)
-                </span>
+              
+              <div className="flex items-center">
+                <BookRating 
+                  rating={book.average_rating} 
+                  ratingCount={book.rating_number}
+                  size="lg"
+                />
               </div>
+              
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{book.main_category}</Badge>
-                {book.price === "0.0" ? (
-                  <Badge variant="default">Free</Badge>
-                ) : (
-                  <Badge variant="default">${book.price}</Badge>
-                )}
+                <BookPrice price={book.price} size="md" />
               </div>
             </div>
           </div>
         </CardHeader>
-
+        <CardContent>
+          {/* Additional book details can be added here */}
+          
+          {/* This is where future recommendation sections will be added */}
+          {/* Example:
+          <div className="mt-8">
+            <RecommendationsGrid 
+              title="Similar Books" 
+              recommendations={similarBooks} 
+            />
+          </div>
+          */}
+        </CardContent>
       </Card>
     </div>
   );

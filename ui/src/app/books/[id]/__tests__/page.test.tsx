@@ -43,7 +43,8 @@ describe('BookPage', () => {
       // Check if main book information is rendered
       expect(screen.getByText(mockBook.title)).toBeInTheDocument();
       expect(screen.getByText(mockBook.subtitle)).toBeInTheDocument();
-      expect(screen.getByText(mockBook.average_rating.toString())).toBeInTheDocument();
+      // Check for both rating value and text
+      expect(screen.getByText(mockBook.average_rating.toFixed(1))).toBeInTheDocument();
       expect(screen.getByText(`(${mockBook.rating_number.toLocaleString()} ratings)`)).toBeInTheDocument();
       expect(screen.getByText(`$${mockBook.price}`)).toBeInTheDocument();
       expect(screen.getByText(mockBook.main_category)).toBeInTheDocument();

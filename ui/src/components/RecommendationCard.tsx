@@ -3,6 +3,9 @@ import type { Recommendation } from "@/types/api"
 import { BookCover } from "@/components/book-covers"
 import { getConfig } from "@/lib/config"
 import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
+import { BookRating } from "@/components/ui/book-rating"
+import { BookPrice } from "@/components/ui/book-price"
 
 export interface RecommendationCardProps {
   recommendation: Recommendation;
@@ -21,8 +24,8 @@ export function RecommendationCard({
   
   return (
     <Link href={`${linkPrefix}/${recommendation.parent_asin}`}>
-      <Card className={className}>
-        <div className="flex gap-4">
+      <Card className={`${className} h-[200px]`}>
+        <div className="flex gap-4 h-full">
           <div className="flex-shrink-0" style={{ width: 96, height: 144 }}>
             <BookCover
               title={recommendation.title}
@@ -33,14 +36,46 @@ export function RecommendationCard({
               implementation={bookCoverImplementation}
             />
           </div>
-          <div className="flex-grow min-w-0">
-            <h4 className="font-semibold">{recommendation.title}</h4>
-            <p className="text-sm text-gray-500">{recommendation.subtitle}</p>
-            <div className="mt-2 text-sm">
-              <p>Rating: {recommendation.average_rating} ({recommendation.rating_number} reviews)</p>
-              {recommendation.price && <p>Price: ${recommendation.price}</p>}
-              {showScore && <p>Score: {recommendation.score.toFixed(2)}</p>}
+          <div className="flex-grow min-w-0 flex flex-col">
+            <div>
+              <h4 
+                className="font-semibold line-clamp-2" 
+                title={recommendation.title}
+              >
+                {recommendation.title}
+              </h4>
+              {recommendation.subtitle && (
+                <p 
+                  className="text-sm text-muted-foreground truncate" 
+                  title={recommendation.subtitle}
+                >
+                  {recommendation.subtitle}
+                </p>
+              )}
             </div>
+            
+            <div className="mt-2 space-y-2">
+              <BookRating 
+                rating={recommendation.average_rating} 
+                ratingCount={recommendation.rating_number}
+                size="sm"
+              />
+              
+              <div className="flex items-center gap-2">
+                <BookPrice 
+                  price={recommendation.price} 
+                  size="sm"
+                />
+                
+                {showScore && (
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    Score: {recommendation.score.toFixed(2)}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex-grow"></div>
           </div>
         </div>
       </Card>
