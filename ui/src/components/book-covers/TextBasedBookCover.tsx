@@ -134,7 +134,7 @@ export const TextBasedBookCover: React.FC<BookCoverProps> = ({
           src={imageUrl}
           alt={title}
           className="object-cover w-full h-full"
-          fill={true}
+          fill
           sizes={`${width}px`}
           priority={false}
         />

@@ -35,6 +35,7 @@ export default async function BookPage({ params }: BookPageProps) {
     book = await getBookDetails(params.id);
   } catch (error) {
     notFound();
+    return undefined;
   }
 
   const bookCoverImplementation = getConfig('ui', 'bookCoverImplementation');
