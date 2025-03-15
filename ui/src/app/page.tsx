@@ -7,9 +7,38 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
 import { BookCover } from "@/components/book-covers"
+import { recommendationsApi } from "@/lib/api"
 
-// Set your preferred implementation here
+// Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased' // or 'dicebear'
+
+interface RecommendationCardProps {
+  recommendation: RecommendationsResponse['recommendations'][0]
+}
+
+const RecommendationCard = ({ recommendation }: RecommendationCardProps) => (
+  <Card className="p-4">
+    <div className="flex gap-4">
+      <BookCover
+        title={recommendation.title}
+        imageUrl={recommendation.image_url}
+        width={96}
+        height={144}
+        parent_asin={recommendation.parent_asin}
+        implementation={BOOK_COVER_IMPLEMENTATION}
+      />
+      <div>
+        <h4 className="font-semibold">{recommendation.title}</h4>
+        <p className="text-sm text-gray-500">{recommendation.subtitle}</p>
+        <div className="mt-2 text-sm">
+          <p>Rating: {recommendation.average_rating} ({recommendation.rating_number} reviews)</p>
+          {recommendation.price && <p>Price: ${recommendation.price}</p>}
+          <p>Score: {recommendation.score.toFixed(2)}</p>
+        </div>
+      </div>
+    </div>
+  </Card>
+)
 
 export default function Home() {
   const [userId, setUserId] = useState("")
@@ -23,24 +52,7 @@ export default function Home() {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:8000/recs/retrieve?count=10&debug=false', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: JSON.stringify({
-          user_ids_raw: [userId],
-          item_seq_raw: [[]],
-          candidate_items_raw: []
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data: RecommendationsResponse = await response.json()
+      const data = await recommendationsApi.getRecommendations(userId)
       setRecommendations(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch recommendations')
@@ -65,6 +77,7 @@ export default function Home() {
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 placeholder="Enter user ID"
+                required
               />
             </div>
             <Button type="submit" disabled={loading}>
@@ -83,27 +96,7 @@ export default function Home() {
               <h3 className="text-lg font-semibold">Recommendations</h3>
               <div className="grid gap-4">
                 {recommendations.recommendations.map((rec, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex gap-4">
-                      <BookCover
-                        title={rec.title}
-                        imageUrl={rec.image_url}
-                        width={96}
-                        height={144}
-                        parent_asin={rec.parent_asin}
-                        implementation={BOOK_COVER_IMPLEMENTATION}
-                      />
-                      <div>
-                        <h4 className="font-semibold">{rec.title}</h4>
-                        <p className="text-sm text-gray-500">{rec.subtitle}</p>
-                        <div className="mt-2 text-sm">
-                          <p>Rating: {rec.average_rating} ({rec.rating_number} reviews)</p>
-                          {rec.price && <p>Price: ${rec.price}</p>}
-                          <p>Score: {rec.score.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+                  <RecommendationCard key={index} recommendation={rec} />
                 ))}
               </div>
             </div>
