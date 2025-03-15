@@ -54,11 +54,19 @@ export default function Home() {
             placeholder="Enter User ID"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            style={{ padding: '0.5rem', fontSize: '1rem', width: '300px' }}
+            style={{ 
+              padding: '0.5rem', 
+              fontSize: '1rem', 
+              width: '300px'
+            }}
           />
           <button
             type="submit"
-            style={{ padding: '0.5rem 1rem', marginLeft: '0.5rem', fontSize: '1rem' }}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              marginLeft: '0.5rem', 
+              fontSize: '1rem'
+            }}
           >
             Get Recommendations
           </button>

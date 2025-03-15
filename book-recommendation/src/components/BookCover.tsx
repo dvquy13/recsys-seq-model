@@ -100,7 +100,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
             color: textColor,
             fontWeight: 'bold',
             marginBottom: '8px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: 'InterVariable, Inter, sans-serif',
             lineHeight: 1.2,
             wordWrap: 'break-word',
             maxWidth: '90%'
@@ -114,7 +114,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
               fontSize: Math.min(width * 0.06, 12),
               color: textColor,
               opacity: 0.8,
-              fontFamily: 'Arial, sans-serif',
+              fontFamily: 'InterVariable, Inter, sans-serif',
               wordWrap: 'break-word',
               maxWidth: '90%'
             }}
