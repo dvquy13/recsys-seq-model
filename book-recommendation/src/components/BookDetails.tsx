@@ -34,6 +34,7 @@ const BookDetails: React.FC<BookDetailsProps> = ({ data }) => {
                 title={data.title}
                 width={300}
                 height={400}
+                imageUrl={data.image_url}
               />
             </div>
           ) : (
