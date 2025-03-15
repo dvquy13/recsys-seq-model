@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
+import { generateBookCover, shouldGenerateBookCover } from "@/lib/bookCover"
 
 export default function Home() {
   const [userId, setUserId] = useState("")
@@ -85,7 +86,7 @@ export default function Home() {
                   <Card key={index} className="p-4">
                     <div className="flex gap-4">
                       <img 
-                        src={rec.image_url} 
+                        src={shouldGenerateBookCover(rec.image_url) ? generateBookCover(rec.title) : rec.image_url} 
                         alt={rec.title}
                         className="w-24 h-36 object-cover rounded-md"
                       />

@@ -3,6 +3,17 @@ import userEvent from '@testing-library/user-event'
 import Home from '../page'
 import { RecommendationsResponse } from '@/types/api'
 
+// Mock DiceBear modules
+jest.mock('@dicebear/core', () => ({
+  createAvatar: jest.fn().mockImplementation(() => ({
+    toDataUri: () => 'data:image/svg+xml;charset=UTF-8,<svg><rect fill="#ff0000"/><ellipse/><polygon/></svg>'
+  }))
+}));
+
+jest.mock('@dicebear/collection', () => ({
+  shapes: {}
+}));
+
 // Mock fetch globally
 global.fetch = jest.fn()
 
