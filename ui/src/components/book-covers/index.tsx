@@ -3,18 +3,12 @@
 import React from 'react';
 import { BookCoverProps, BookCoverImplementation } from './types';
 import { TextBasedBookCover } from './TextBasedBookCover';
-import { DiceBearBookCover } from './DiceBearBookCover';
 
 export const implementations: BookCoverImplementation[] = [
   {
     name: 'textBased',
     component: TextBasedBookCover,
     description: 'A text-based book cover with patterns',
-  },
-  {
-    name: 'dicebear',
-    component: DiceBearBookCover,
-    description: 'A book cover using DiceBear shapes',
   },
 ];
 

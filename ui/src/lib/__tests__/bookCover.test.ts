@@ -1,16 +1,5 @@
 import { generateBookCover, shouldGenerateBookCover } from '../bookCover';
 
-// Mock DiceBear modules
-jest.mock('@dicebear/core', () => ({
-  createAvatar: jest.fn().mockImplementation(() => ({
-    toDataUri: () => 'data:image/svg+xml;charset=UTF-8,<svg><rect fill="#ff0000"/><ellipse/><polygon/></svg>'
-  }))
-}));
-
-jest.mock('@dicebear/collection', () => ({
-  shapes: {}
-}));
-
 describe('shouldGenerateBookCover', () => {
   it('should return true when image_url is undefined', () => {
     expect(shouldGenerateBookCover(undefined)).toBe(true);
@@ -28,15 +17,10 @@ describe('shouldGenerateBookCover', () => {
 });
 
 describe('generateBookCover', () => {
-  const { createAvatar } = require('@dicebear/core');
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should generate a data URI for SVG image', () => {
+  it('should generate a placeholder URL with the book title', () => {
     const result = generateBookCover('Test Book');
-    expect(result).toMatch(/^data:image\/svg\+xml;charset=UTF-8,/);
+    expect(result).toMatch(/^https:\/\/placehold\.co\/400x600/);
+    expect(result).toContain('text=Test%20Book');
   });
 
   it('should generate consistent output for same title', () => {
@@ -46,37 +30,13 @@ describe('generateBookCover', () => {
   });
 
   it('should generate different output for different titles', () => {
-    // Mock different outputs for different seeds
-    createAvatar
-      .mockImplementationOnce(() => ({
-        toDataUri: () => 'data:image/svg+xml;charset=UTF-8,<svg>1</svg>'
-      }))
-      .mockImplementationOnce(() => ({
-        toDataUri: () => 'data:image/svg+xml;charset=UTF-8,<svg>2</svg>'
-      }));
-
     const firstResult = generateBookCover('Test Book 1');
     const secondResult = generateBookCover('Test Book 2');
     expect(firstResult).not.toBe(secondResult);
   });
 
-  it('should call createAvatar with correct options', () => {
-    generateBookCover('Test Book');
-    expect(createAvatar).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        seed: 'Test Book',
-        backgroundColor: expect.any(Array),
-        size: expect.any(Number)
-      })
-    );
-  });
-
-  it('should include the configured shapes and colors', () => {
-    const result = generateBookCover('Test Book');
-    // Check for presence of SVG elements and color values
-    expect(result).toMatch(/svg/);
-    expect(result).toMatch(/ellipse|rectangle|polygon/);
-    expect(result).toMatch(/ff0000|00ff00|0000ff/);
+  it('should properly encode special characters in title', () => {
+    const result = generateBookCover('Test & Book');
+    expect(result).toContain('text=Test%20%26%20Book');
   });
 }); 

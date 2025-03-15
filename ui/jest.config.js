@@ -13,8 +13,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    // Transform ESM modules from dicebear
-    '/node_modules/(?!(@dicebear)/)',
+    '/node_modules/'
   ],
 }
 

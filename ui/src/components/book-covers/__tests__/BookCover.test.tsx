@@ -2,17 +2,6 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { BookCover, implementations } from '..';
 
-// Mock DiceBear
-jest.mock('@dicebear/core', () => ({
-  createAvatar: jest.fn().mockImplementation(() => ({
-    toDataUri: () => 'data:image/svg+xml;base64,mockSvg'
-  }))
-}));
-
-jest.mock('@dicebear/collection', () => ({
-  shapes: {}
-}));
-
 describe('BookCover', () => {
   const defaultProps = {
     title: 'Test Book',

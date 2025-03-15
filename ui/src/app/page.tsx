@@ -10,7 +10,7 @@ import { recommendationsApi } from "@/lib/api"
 import { RecommendationCard } from "@/components/RecommendationCard"
 
 // Move this to an environment variable or configuration file
-const BOOK_COVER_IMPLEMENTATION = 'textBased' // or 'dicebear'
+const BOOK_COVER_IMPLEMENTATION = 'textBased'
 
 interface RecommendationCardProps {
   recommendation: RecommendationsResponse['recommendations'][0]

@@ -11,8 +11,6 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@dicebear/collection": "^7.0.1",
-    "@dicebear/core": "^7.0.1",
     "@hookform/resolvers": "^4.1.3",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-dialog": "^1.1.6",
