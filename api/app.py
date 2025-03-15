@@ -14,6 +14,7 @@ from qdrant_client import QdrantClient
 from src.cfg import ConfigLoader
 from src.dto import RetrieveContext
 
+from .models import RecommendationResponse
 from .logging_utils import RequestIDMiddleware
 from .utils import debug_logging_decorator
 
@@ -80,7 +81,7 @@ def get_user_prev_interactions(user_id: str) -> Dict[str, Any]:
     return {"recent_interactions": data.split("__")}
 
 
-@app.post("/recs/retrieve", summary="Retrieve the candidate for recommendations")
+@app.post("/recs/retrieve", summary="Retrieve the candidate for recommendations", response_model=RecommendationResponse)
 @debug_logging_decorator
 async def retrieve(
     ctx: RetrieveContext,
