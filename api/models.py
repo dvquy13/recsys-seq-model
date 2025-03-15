@@ -12,7 +12,7 @@ class RecommendationItem(BaseModel):
     average_rating: float
     rating_number: int
     price: Optional[Union[str, float]]
-    subtitle: str
+    subtitle: Optional[str]
     image_url: str
     parent_asin: str
 

@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 import numpy as np
@@ -13,12 +13,23 @@ from qdrant_client import QdrantClient
 
 from src.cfg import ConfigLoader
 from src.dto import RetrieveContext
+from src.id_mapper import IDMapper
+from src.io_utils import init_s3_client
 
-from .models import RecommendationResponse
 from .logging_utils import RequestIDMiddleware
+from .models import RecommendationResponse
 from .utils import debug_logging_decorator
 
 cfg = ConfigLoader("./cfg/common.yaml")
+
+idm_fp = "./idm.json"
+if not os.path.exists(cfg.data.train_features_fp):
+    s3 = init_s3_client()
+    bucket_name = cfg.data.bucket_name
+    idm_key = cfg.data.idm_fp.split("/")[-1]
+    logger.info(f"Downloading {idm_key} from S3...")
+    s3.download_file(bucket_name, idm_key, idm_fp)
+idm = IDMapper().load(idm_fp)
 
 app = FastAPI()
 app.add_middleware(RequestIDMiddleware)
@@ -30,13 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logger.remove()
-logger.add(
-    sys.stderr,
-    format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level:<8} | {name}:{function}:{line} | request_id: {extra[rec_id]} - {message}",
-)
-
 
 SEQ_RETRIEVER_MODEL_SERVER_URL = os.getenv(
     "SEQ_RETRIEVER_MODEL_SERVER_URL", "http://localhost:3000"
@@ -52,6 +56,12 @@ redis_feature_prev_items_key_prefix = cfg.redis.keys.recent_key_prefix
 redis_output_popular_key = cfg.redis.keys.popular_key
 
 ann_index = QdrantClient(url=QDRANT_URL)
+
+logger.remove()
+logger.add(
+    sys.stderr,
+    format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level:<8} | {name}:{function}:{line} | request_id: {extra[rec_id]} - {message}",
+)
 
 
 def get_recommendations_from_redis(
@@ -81,7 +91,11 @@ def get_user_prev_interactions(user_id: str) -> Dict[str, Any]:
     return {"recent_interactions": data.split("__")}
 
 
-@app.post("/recs/retrieve", summary="Retrieve the candidate for recommendations", response_model=RecommendationResponse)
+@app.post(
+    "/recs/retrieve",
+    summary="Retrieve the candidate for recommendations",
+    response_model=RecommendationResponse,
+)
 @debug_logging_decorator
 async def retrieve(
     ctx: RetrieveContext,
@@ -118,14 +132,23 @@ async def retrieve(
     return {"recommendations": recommendations, "ctx": ctx.model_dump()}
 
 
-@app.get("/recs/popular", summary="Get popular items as recommendations")
+@app.get(
+    "/recs/popular",
+    summary="Get popular items as recommendations",
+    response_model=RecommendationResponse,
+)
 @debug_logging_decorator
 async def get_recommendations_popular(
     count: Optional[int] = Query(10, description="Number of popular items to return"),
     debug: bool = Query(False, description="Enable debug logging"),
 ):
     recommendations = get_recommendations_from_redis(redis_output_popular_key, count)
-    return {"recommendations": recommendations}
+    rec_item_ids = recommendations["rec_item_ids"]
+    item_info = await get_items_by_ids(rec_item_ids)
+    for i, item in enumerate(item_info["items"]):
+        item["score"] = recommendations["rec_scores"][i]
+    logger.info(f"[DEBUG] {item_info=}")
+    return {"recommendations": item_info["items"], "ctx": {}}
 
 
 # New endpoint to connect to external service
@@ -185,3 +208,26 @@ async def seq_retriever(
         error_message = f"[DEBUG] Error connecting to external service: {str(e)}"
         logger.error(error_message)
         raise HTTPException(status_code=500, detail=error_message)
+
+
+@app.post("/items/get_by_ids")
+@debug_logging_decorator
+async def get_items_by_ids(
+    item_ids: List[str],
+    debug: bool = Query(False, description="Enable debug logging"),
+):
+    """
+    Retrieve items by their IDs. The IDs will be mapped to indices before querying the vector store.
+    """
+    # Map string IDs to indices
+    indices = [idm.get_item_index(item_id) for item_id in item_ids]
+    logger.info(f"[DEBUG] Mapped item IDs {item_ids} to indices {indices}")
+
+    # Retrieve items from vector store
+    hits = ann_index.retrieve(
+        collection_name=cfg.vectorstore.qdrant.collection_name,
+        ids=indices,
+    )
+    outputs = [hit.payload for hit in hits]
+
+    return {"items": outputs}
