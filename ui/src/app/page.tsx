@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
 import { recommendationsApi } from "@/lib/api"
 import { RecommendationCard } from "@/components/RecommendationCard"
+import { Container, Wrapper } from "@/components/ui/container"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
@@ -38,46 +39,48 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>User Lookup</CardTitle>
-          <CardDescription>Enter a user ID to fetch their recommendations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="userId">User ID</Label>
-              <Input
-                id="userId"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter user ID (optional)"
-              />
-            </div>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Loading...' : 'Submit'}
-            </Button>
-          </form>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md">
-              {error}
-            </div>
-          )}
-
-          {recommendations && (
-            <div className="mt-6 space-y-4">
-              <h3 className="text-lg font-semibold">Recommendations</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recommendations.recommendations.map((rec, index) => (
-                  <RecommendationCard key={index} recommendation={rec} />
-                ))}
+    <Container className="py-6">
+      <Wrapper className="p-0">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Lookup</CardTitle>
+            <CardDescription>Enter a user ID to fetch their recommendations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="userId">User ID</Label>
+                <Input
+                  id="userId"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter user ID (optional)"
+                />
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Loading...' : 'Submit'}
+              </Button>
+            </form>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+
+            {recommendations && (
+              <div className="mt-6 space-y-4">
+                <h3 className="text-lg font-semibold">Recommendations</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recommendations.recommendations.map((rec, index) => (
+                    <RecommendationCard key={index} recommendation={rec} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Wrapper>
+    </Container>
   )
 }
