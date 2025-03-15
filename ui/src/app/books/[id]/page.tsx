@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 import { BookCover } from '@/components/book-covers';
 import { getConfig } from '@/lib/config';
+import { RecommendationsGrid } from '@/components/RecommendationsGrid';
 
 interface BookPageProps {
   params: {
@@ -78,9 +79,7 @@ export default async function BookPage({ params }: BookPageProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* Additional book details can be added here */}
-        </CardContent>
+
       </Card>
     </div>
   );

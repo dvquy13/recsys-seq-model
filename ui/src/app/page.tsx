@@ -8,17 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
 import { recommendationsApi } from "@/lib/api"
-import { RecommendationCard } from "@/components/RecommendationCard"
 import { Container, Wrapper } from "@/components/ui/container"
+import { RecommendationsGrid } from "@/components/RecommendationsGrid"
 
 // Move this to an environment variable or configuration file
 const BOOK_COVER_IMPLEMENTATION = 'textBased'
 
 const STORAGE_KEY = 'last-submitted-user-id'
-
-interface RecommendationCardProps {
-  recommendation: RecommendationsResponse['recommendations'][0]
-}
 
 export default function Home() {
   const [userId, setUserId] = useState("")
@@ -73,14 +69,10 @@ export default function Home() {
             )}
 
             {recommendations && (
-              <div className="mt-6 space-y-4">
-                <h3 className="text-lg font-semibold">Recommendations</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recommendations.recommendations.map((rec, index) => (
-                    <RecommendationCard key={index} recommendation={rec} />
-                  ))}
-                </div>
-              </div>
+              <RecommendationsGrid
+                title="Recommendations"
+                recommendations={recommendations.recommendations}
+              />
             )}
           </CardContent>
         </Card>

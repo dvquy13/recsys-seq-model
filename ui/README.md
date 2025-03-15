@@ -34,3 +34,42 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Recommendation Components
+
+### RecommendationsGrid
+
+The `RecommendationsGrid` component is a reusable component for displaying a grid of recommendations. It can be used to display different types of recommendation lists.
+
+#### Usage
+
+```tsx
+import { RecommendationsGrid } from '@/components/RecommendationsGrid';
+
+// In your component:
+<RecommendationsGrid
+  title="Recommendations"
+  recommendations={recommendations}
+  emptyMessage="No recommendations available"
+/>
+```
+
+#### Props
+
+- `title`: The title of the recommendations section
+- `recommendations`: An array of recommendation objects
+- `emptyMessage` (optional): Message to display when there are no recommendations
+- `className` (optional): CSS class for the container
+- `gridClassName` (optional): CSS class for the grid
+- `titleClassName` (optional): CSS class for the title
+
+### RecommendationCard
+
+The `RecommendationCard` component displays a single recommendation. It has been updated to be more flexible for different use cases.
+
+#### Props
+
+- `recommendation`: A recommendation object
+- `showScore` (optional): Whether to show the recommendation score (default: true)
+- `linkPrefix` (optional): Prefix for the link URL (default: '/books')
+- `className` (optional): CSS class for the card
