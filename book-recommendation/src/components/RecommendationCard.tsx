@@ -16,6 +16,7 @@ interface RecommendationCardProps {
 
 const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation }) => {
   const router = useRouter();
+  const [imageError, setImageError] = React.useState(false);
 
   const {
     title,
@@ -31,12 +32,10 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
 
   const handleCardClick = () => {
     try {
-      // For placeholder images, generate a BookCover-style URL
-      const imageUrl = isPlaceholderImage(image_url) 
-        ? '' // Empty URL will trigger BookCover in the details view
+      const imageUrl = isPlaceholderImage(image_url) || imageError
+        ? '' 
         : image_url;
 
-      // Pass through all fields from the recommendation
       const validatedRecommendation = {
         image_url: imageUrl,
         title: title || 'Untitled',
@@ -49,13 +48,10 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
         parent_asin: parent_asin || ''
       };
       
-      // Encode the data for URL
       const encodedData = encodeURIComponent(JSON.stringify(validatedRecommendation));
-      
       router.push(`/book-details?data=${encodedData}`);
     } catch (error) {
       console.error('Error preparing book data:', error);
-      // Provide a fallback with minimal data
       const fallbackData = {
         image_url: '',
         title: title || 'Untitled',
@@ -76,50 +72,59 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
     <Card
       onClick={handleCardClick}
       className={cn(
-        "w-[200px] min-h-[340px] cursor-pointer transition-all duration-200",
-        "hover:translate-y-[-5px] hover:shadow-lg"
+        "w-[180px] flex-shrink-0 cursor-pointer",
+        "transition-all duration-200 hover:shadow-lg",
+        "bg-card text-card-foreground"
       )}
     >
-      <CardContent className="p-4 flex flex-col items-center">
-        <div className="w-full aspect-[2/3] relative mb-4">
-          {isPlaceholderImage(image_url) ? (
+      <CardContent className="p-3">
+        <div className="aspect-[2/3] relative mb-3">
+          {isPlaceholderImage(image_url) || imageError ? (
             <BookCover 
               title={title} 
-              width={200} 
-              height={300} 
+              width={180} 
+              height={270} 
               imageUrl={image_url || ''}
             />
           ) : (
             <div className="relative w-full h-full overflow-hidden rounded-md">
               <Image
-                src={image_url || '/placeholder.jpg'}
+                src={image_url}
                 alt={title}
                 className="object-cover"
                 fill={true}
-                sizes="200px"
+                sizes="180px"
+                onError={() => setImageError(true)}
+                priority={true}
               />
             </div>
           )}
         </div>
 
-        <div className="w-full space-y-2 text-center">
-          <h3 className="font-semibold line-clamp-2">{title}</h3>
+        <div className="space-y-1.5">
+          <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">
+            {title}
+          </h3>
           
-          {average_rating && (
-            <div className="flex items-center justify-center gap-2">
-              <Badge variant="secondary" className="text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {average_rating > 0 && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
                 {average_rating.toFixed(1)} ★
               </Badge>
+            )}
+            {rating_number > 0 && (
               <span className="text-xs text-muted-foreground">
-                ({rating_number})
+                ({rating_number.toLocaleString()})
               </span>
-            </div>
-          )}
+            )}
+          </div>
           
           {price && price !== "None" && (
-            <Badge variant="outline" className="text-xs">
-              ${price}
-            </Badge>
+            <div className="mt-1">
+              <Badge variant="outline" className="text-xs px-1.5 py-0">
+                ${price}
+              </Badge>
+            </div>
           )}
         </div>
       </CardContent>

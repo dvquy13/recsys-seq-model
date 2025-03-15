@@ -6,22 +6,16 @@ const createJestConfig = nextJest({
 })
 
 // Add any custom config to be passed to Jest
-/** @type {import('jest').Config} */
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest'],
-    // Transform ESM modules
-    '^.+\\.m?js$': ['@swc/jest']
-  },
   transformIgnorePatterns: [
-    // Transform ESM modules in node_modules
-    'node_modules/(?!(@dicebear)/)'
-  ]
+    // Transform ESM modules from dicebear
+    '/node_modules/(?!(@dicebear)/)',
+  ],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

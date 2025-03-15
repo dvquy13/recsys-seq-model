@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RecommendationsResponse } from "@/types/api"
-import { generateBookCover, shouldGenerateBookCover } from "@/lib/bookCover"
+import { BookCover } from "@/components/book-covers"
+
+// Set your preferred implementation here
+const BOOK_COVER_IMPLEMENTATION = 'textBased' // or 'dicebear'
 
 export default function Home() {
   const [userId, setUserId] = useState("")
@@ -47,33 +50,30 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
+    <div className="container mx-auto py-10">
+      <Card>
         <CardHeader>
           <CardTitle>User Lookup</CardTitle>
           <CardDescription>Enter a user ID to fetch their recommendations</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="userId">User ID</Label>
-                <Input
-                  id="userId"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter user ID"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Loading...' : 'Submit'}
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="userId">User ID</Label>
+              <Input
+                id="userId"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="Enter user ID"
+              />
             </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Loading...' : 'Submit'}
+            </Button>
           </form>
 
           {error && (
-            <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-md">
+            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md">
               {error}
             </div>
           )}
@@ -85,10 +85,13 @@ export default function Home() {
                 {recommendations.recommendations.map((rec, index) => (
                   <Card key={index} className="p-4">
                     <div className="flex gap-4">
-                      <img 
-                        src={shouldGenerateBookCover(rec.image_url) ? generateBookCover(rec.title) : rec.image_url} 
-                        alt={rec.title}
-                        className="w-24 h-36 object-cover rounded-md"
+                      <BookCover
+                        title={rec.title}
+                        imageUrl={rec.image_url}
+                        width={96}
+                        height={144}
+                        parent_asin={rec.parent_asin}
+                        implementation={BOOK_COVER_IMPLEMENTATION}
                       />
                       <div>
                         <h4 className="font-semibold">{rec.title}</h4>
