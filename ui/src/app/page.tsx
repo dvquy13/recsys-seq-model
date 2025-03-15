@@ -1,17 +1,48 @@
 'use client'
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import type { RecommendationsResponse } from "@/types/api"
 
 export default function Home() {
   const [userId, setUserId] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log('Submitted user ID:', userId)
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('http://localhost:8000/recs/retrieve?count=10&debug=false', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({
+          user_ids_raw: [userId],
+          item_seq_raw: [[]],
+          candidate_items_raw: []
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: RecommendationsResponse = await response.json()
+      setRecommendations(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch recommendations')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -19,7 +50,7 @@ export default function Home() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>User Lookup</CardTitle>
-          <CardDescription>Enter a user ID to fetch their information</CardDescription>
+          <CardDescription>Enter a user ID to fetch their recommendations</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -34,11 +65,45 @@ export default function Home() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Submit
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Loading...' : 'Submit'}
               </Button>
             </div>
           </form>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {recommendations && (
+            <div className="mt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Recommendations</h3>
+              <div className="grid gap-4">
+                {recommendations.recommendations.map((rec, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex gap-4">
+                      <img 
+                        src={rec.image_url} 
+                        alt={rec.title}
+                        className="w-24 h-36 object-cover rounded-md"
+                      />
+                      <div>
+                        <h4 className="font-semibold">{rec.title}</h4>
+                        <p className="text-sm text-gray-500">{rec.subtitle}</p>
+                        <div className="mt-2 text-sm">
+                          <p>Rating: {rec.average_rating} ({rec.rating_number} reviews)</p>
+                          {rec.price && <p>Price: ${rec.price}</p>}
+                          <p>Score: {rec.score.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
