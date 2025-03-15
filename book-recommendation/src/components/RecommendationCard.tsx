@@ -68,7 +68,12 @@ const RecommendationCard = ({ recommendation }: { recommendation: Recommendation
     >
       <div>
         {isPlaceholderImage(recommendation.image_url) ? (
-          <div style={{ margin: '0 auto', width: '150px', height: '200px' }}>
+          <div style={{ 
+            margin: '0 auto', 
+            width: '150px', 
+            height: '200px', 
+            marginBottom: '20px' 
+          }}>
             <BookCover
               title={recommendation.title}
               author={recommendation.author}
@@ -77,21 +82,36 @@ const RecommendationCard = ({ recommendation }: { recommendation: Recommendation
             />
           </div>
         ) : (
-          <div style={{ position: 'relative', width: '150px', height: '200px', margin: '0 auto' }}>
+          <div style={{ 
+            position: 'relative', 
+            width: '150px', 
+            height: '200px', 
+            margin: '0 auto',
+            marginBottom: '20px',
+            overflow: 'hidden',
+            borderRadius: '4px'
+          }}>
             <Image
               src={recommendation.image_url}
               alt={recommendation.title}
-              style={{ objectFit: 'cover' }}
+              style={{ 
+                objectFit: 'cover',
+                width: '100%',
+                height: '100%'
+              }}
               fill={true}
+              sizes="150px"
             />
           </div>
         )}
-        <h3>{recommendation.title}</h3>
-        <p>{recommendation.subtitle}</p>
-        <p>
-          Rating: {recommendation.average_rating} ({recommendation.rating_number} reviews)
-        </p>
-        <p>Price: {recommendation.price}</p>
+        <div style={{ marginTop: '10px' }}>
+          <h3 style={{ marginTop: '0', fontSize: '1rem', fontWeight: 'bold' }}>{recommendation.title}</h3>
+          <p>{recommendation.subtitle}</p>
+          <p>
+            Rating: {recommendation.average_rating} ({recommendation.rating_number} reviews)
+          </p>
+          <p>Price: {recommendation.price}</p>
+        </div>
       </div>
     </div>
   );

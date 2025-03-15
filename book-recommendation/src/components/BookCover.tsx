@@ -40,6 +40,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const bgColor = backgroundColor || getRandomColor();
   const truncatedTitle = truncateText(title, 50);
   const truncatedAuthor = author ? truncateText(author, 30) : '';
+  const patternId = `pattern-${Math.random().toString(36).substr(2, 9)}`;
 
   return (
     <div
@@ -48,13 +49,14 @@ export const BookCover: React.FC<BookCoverProps> = ({
         height,
         backgroundColor: bgColor,
         borderRadius: '4px',
-        padding: '20px',
+        padding: '10px',
         position: 'relative',
         boxShadow: '2px 2px 10px rgba(0,0,0,0.2)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Decorative pattern */}
@@ -69,7 +71,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
         }}
       >
         <pattern
-          id="pattern"
+          id={patternId}
           x="0"
           y="0"
           width="20"
@@ -78,18 +80,30 @@ export const BookCover: React.FC<BookCoverProps> = ({
         >
           <circle cx="10" cy="10" r="1" fill={textColor} />
         </pattern>
-        <rect width="100%" height="100%" fill="url(#pattern)" />
+        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
       </svg>
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 1, 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center',
+        alignItems: 'center',
+        textAlign: 'center'
+      }}>
         <div
           style={{
-            fontSize: width * 0.1,
+            fontSize: Math.min(width * 0.10, 18),
             color: textColor,
             fontWeight: 'bold',
-            marginBottom: '10px',
+            marginBottom: '8px',
             fontFamily: 'Georgia, serif',
+            lineHeight: 1.2,
+            wordWrap: 'break-word',
+            maxWidth: '90%'
           }}
         >
           {truncatedTitle}
@@ -97,10 +111,12 @@ export const BookCover: React.FC<BookCoverProps> = ({
         {author && (
           <div
             style={{
-              fontSize: width * 0.06,
+              fontSize: Math.min(width * 0.06, 12),
               color: textColor,
               opacity: 0.8,
               fontFamily: 'Arial, sans-serif',
+              wordWrap: 'break-word',
+              maxWidth: '90%'
             }}
           >
             by {truncatedAuthor}
@@ -108,16 +124,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
         )}
       </div>
 
-      {/* Bottom decoration */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          borderTop: `2px solid ${textColor}`,
-          opacity: 0.3,
-          marginTop: '10px',
-        }}
-      />
+      {/* Bottom decoration - removed to match image layout */}
     </div>
   );
 };
