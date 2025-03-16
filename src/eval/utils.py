@@ -37,7 +37,7 @@ def create_rec_df(df, idm: IDMapper, user_col="user_id", item_col="parent_asin")
             item_col: lambda df: df["recommendation"].apply(
                 lambda item_indice: idm.get_item_id(item_indice)
             ),
-        }
+        },
     )
 
 

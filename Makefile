@@ -38,6 +38,15 @@ api-down:
 test:
 	./tests/run_tests.sh
 
+lint:
+	uv run ruff check .
+
+lint-fix:
+	uv run ruff check . --fix
+
+format:
+	uv run ruff format .
+
 # Create the requirements.txt file and update the torch to CPU version to reduce the image size
 requirements-txt:
 # requirements.txt for model_server/

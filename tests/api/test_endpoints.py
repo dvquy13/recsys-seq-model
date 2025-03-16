@@ -1,8 +1,3 @@
-import json
-from unittest.mock import patch
-
-import pytest
-
 from src.dto import RetrieveContext
 
 

@@ -1,10 +1,9 @@
-import json
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 from starlette.testclient import TestClient
 
 from api.logging_utils import RequestIDMiddleware

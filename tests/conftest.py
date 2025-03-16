@@ -45,7 +45,6 @@ with (
         RecommendationResponse,
         SeqRetrieverResponse,
     )
-    from src.dto import RetrieveContext
 
 
 @pytest.fixture

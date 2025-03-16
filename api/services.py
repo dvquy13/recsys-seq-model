@@ -169,4 +169,4 @@ class RecommendationService:
         except httpx.HTTPError as e:
             error_message = f"[DEBUG] Error connecting to external service: {str(e)}"
             logger.error(error_message)
-            raise HTTPException(status_code=500, detail=error_message)
+            raise HTTPException(status_code=500, detail=error_message) from e
