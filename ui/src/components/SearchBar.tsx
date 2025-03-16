@@ -130,7 +130,7 @@ export function SearchBar() {
           <Input
             ref={inputRef}
             type="text"
-            placeholder="Type a command or search..."
+            placeholder="Search books..."
             value={searchQuery}
             onChange={handleInputChange}
             onFocus={handleFocus}
