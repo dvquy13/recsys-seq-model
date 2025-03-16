@@ -35,6 +35,9 @@ api-logs:
 api-down:
 	docker compose -f compose.api.yml down
 
+test:
+	./tests/run_tests.sh
+
 # Create the requirements.txt file and update the torch to CPU version to reduce the image size
 requirements-txt:
 # requirements.txt for model_server/

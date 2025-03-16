@@ -48,3 +48,8 @@ airflow/plugins
 tests/**/logs
 tests/**/*.jsonl
 tests/**/*.json
+
+# Test coverage
+.coverage
+.pytest_cache/
+htmlcov/

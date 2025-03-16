@@ -49,3 +49,18 @@ The main API endpoint is /recs/retrieve, try this request body:
   "candidate_items_raw": []
 }
 ```
+
+# Run Tests
+The project includes comprehensive tests for the API. To run the tests:
+
+```shell
+# Run tests using the provided script
+make test
+
+# Or run manually
+uv pip install --group testing
+export PYTHONPATH=$(pwd)
+pytest
+```
+
+For more details about the tests, see [tests/README.md](tests/README.md).
