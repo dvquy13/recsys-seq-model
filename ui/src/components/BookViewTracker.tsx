@@ -32,13 +32,11 @@ export function BookViewTracker({ book }: BookViewTrackerProps) {
         // Get the current user ID from localStorage
         const userId = localStorage.getItem('last-submitted-user-id');
         
-        // If a user ID is available, update personalized recommendations
-        if (userId) {
-          // Update personalized recommendations in background
-          updatePersonalizedRecs(userId).catch(error => {
-            console.error('Failed to update personalized recommendations:', error);
-          });
-        }
+        // Update personalized recommendations even if userId is null/empty
+        // This will ensure item_seq_raw is updated even for guest users
+        updatePersonalizedRecs(userId || 'guest').catch(error => {
+          console.error('Failed to update personalized recommendations:', error);
+        });
       }
     };
     
