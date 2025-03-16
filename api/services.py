@@ -83,6 +83,9 @@ class RecommendationService:
     async def retrieve_recommendations(
         self, ctx: RetrieveContext, count: int
     ) -> RecommendationResponse:
+        # Items to exclude from recommendations
+        items_to_exclude = set()
+
         if len(ctx.user_ids_raw) > 0 and (user_id := ctx.user_ids_raw[0]):
             logger.info(f"Getting recent interactions for user: {user_id}")
             user_id = ctx.user_ids_raw[0]
@@ -90,9 +93,21 @@ class RecommendationService:
                 "recent_interactions"
             ]
             logger.info(f"[DEBUG] {user_prev_interactions=}")
+
+            # Add user's previous interactions to exclusion set
+            items_to_exclude.update(user_prev_interactions)
+
             curr_item_seq = ctx.item_seq_raw[0]
             ctx.item_seq_raw = [user_prev_interactions + curr_item_seq]
             logger.info(f"[DEBUG] {ctx=}")
+
+        # Add items from input sequence to exclusion set
+        if ctx.item_seq_raw and ctx.item_seq_raw[0]:
+            items_to_exclude.update(ctx.item_seq_raw[0])
+
+        logger.info(
+            f"[DEBUG] Items to exclude from recommendations: {items_to_exclude}"
+        )
 
         if len(ctx.item_seq_raw[0]) == 0:
             logger.info("Empty RetrieveContext, fallback to popular recommendations")
@@ -104,16 +119,28 @@ class RecommendationService:
         query_embedding = np.array(query_embedding_resp.result["query_embedding"])
         logger.info(f"[DEBUG] {query_embedding.shape=}")
 
+        # Get more recommendations than needed since we'll filter some out
+        buffer_count = count + len(items_to_exclude)
         hits = self.services.ann_index.search(
             collection_name=cfg.vectorstore.qdrant.collection_name,
             query_vector=query_embedding[0],
-            limit=count,
+            limit=buffer_count,
         )
-        recommendations = [
-            {"score": hit.model_dump()["score"], **hit.payload} for hit in hits
-        ]
+
+        # Filter out items that should be excluded
+        filtered_recommendations = []
+        for hit in hits:
+            # TODO: This knowledge of using parent_asin as item id should be clear to developers...
+            item_id = hit.payload.get("parent_asin", "")
+            if item_id not in items_to_exclude:
+                filtered_recommendations.append(
+                    {"score": hit.model_dump()["score"], **hit.payload}
+                )
+                if len(filtered_recommendations) >= count:
+                    break
+
         return RecommendationResponse(
-            recommendations=recommendations,
+            recommendations=filtered_recommendations,
             ctx=ctx.model_dump(),
             debug_info=query_embedding_resp.debug_info,
         )

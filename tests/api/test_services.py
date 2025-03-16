@@ -322,3 +322,315 @@ async def test_call_seq_retriever_error(recommendation_service):
             await recommendation_service.call_seq_retriever(ctx, "get_query_embeddings")
 
         assert excinfo.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_retrieve_recommendations_exclude_user_prev_interactions(
+    recommendation_service, mock_services, mock_cfg
+):
+    """Test that items from user's previous interactions are excluded from recommendations."""
+    # Mock the call_seq_retriever method
+    recommendation_service.call_seq_retriever = AsyncMock()
+    recommendation_service.call_seq_retriever.return_value.result = {
+        "query_embedding": [[0.1, 0.2, 0.3]]
+    }
+    recommendation_service.call_seq_retriever.return_value.debug_info = []
+
+    # Mock user's previous interactions
+    user_prev_interactions = ["item1", "item3"]
+    recommendation_service.get_user_prev_interactions = MagicMock()
+    recommendation_service.get_user_prev_interactions.return_value = {
+        "recent_interactions": user_prev_interactions
+    }
+
+    # Create additional mock hits with items that should be excluded
+    mock_hit1 = MagicMock()
+    mock_hit1.model_dump.return_value = {"score": 0.9}
+    mock_hit1.payload = {
+        "main_category": "Books",
+        "title": "Test Book 1",
+        "average_rating": 4.5,
+        "rating_number": 100,
+        "image_url": "http://example.com/image1.jpg",
+        "parent_asin": "item1",  # This should be excluded
+    }
+
+    mock_hit2 = MagicMock()
+    mock_hit2.model_dump.return_value = {"score": 0.8}
+    mock_hit2.payload = {
+        "main_category": "Books",
+        "title": "Test Book 2",
+        "average_rating": 4.2,
+        "rating_number": 80,
+        "image_url": "http://example.com/image2.jpg",
+        "parent_asin": "item2",  # This should be included
+    }
+
+    mock_hit3 = MagicMock()
+    mock_hit3.model_dump.return_value = {"score": 0.7}
+    mock_hit3.payload = {
+        "main_category": "Books",
+        "title": "Test Book 3",
+        "average_rating": 4.0,
+        "rating_number": 60,
+        "image_url": "http://example.com/image3.jpg",
+        "parent_asin": "item3",  # This should be excluded
+    }
+
+    mock_hit4 = MagicMock()
+    mock_hit4.model_dump.return_value = {"score": 0.6}
+    mock_hit4.payload = {
+        "main_category": "Books",
+        "title": "Test Book 4",
+        "average_rating": 3.8,
+        "rating_number": 40,
+        "image_url": "http://example.com/image4.jpg",
+        "parent_asin": "item4",  # This should be included
+    }
+
+    mock_services.ann_index.search.return_value = [
+        mock_hit1,
+        mock_hit2,
+        mock_hit3,
+        mock_hit4,
+    ]
+
+    # Create a test context with a user ID
+    ctx = RetrieveContext(
+        user_ids_raw=["user1"],
+        item_seq_raw=[["item5"]],  # Current item sequence not in prev interactions
+        candidate_items_raw=[],
+    )
+
+    # Patch the collection_name in the service call
+    with patch.object(
+        mock_cfg.vectorstore.qdrant, "collection_name", "test_collection"
+    ):
+        result = await recommendation_service.retrieve_recommendations(ctx, 2)
+
+        # Verify that items from user's previous interactions were excluded
+        assert len(result.recommendations) == 2
+        recommendation_ids = [item.parent_asin for item in result.recommendations]
+
+        # Should include item2 and item4, but not item1 or item3
+        assert "item1" not in recommendation_ids
+        assert "item3" not in recommendation_ids
+        assert "item2" in recommendation_ids
+        assert "item4" in recommendation_ids
+
+        # Verify that we requested more than needed since we'll filter some out
+        mock_services.ann_index.search.assert_called_once()
+        call_args = mock_services.ann_index.search.call_args[1]
+        assert call_args["limit"] > 2  # Should request more than needed
+
+
+@pytest.mark.asyncio
+async def test_retrieve_recommendations_exclude_input_sequence(
+    recommendation_service, mock_services, mock_cfg
+):
+    """Test that items from input sequence are excluded from recommendations."""
+    # Mock the call_seq_retriever method
+    recommendation_service.call_seq_retriever = AsyncMock()
+    recommendation_service.call_seq_retriever.return_value.result = {
+        "query_embedding": [[0.1, 0.2, 0.3]]
+    }
+    recommendation_service.call_seq_retriever.return_value.debug_info = []
+
+    # Mock empty user's previous interactions
+    recommendation_service.get_user_prev_interactions = MagicMock()
+    recommendation_service.get_user_prev_interactions.return_value = {
+        "recent_interactions": []
+    }
+
+    # Create mock hits
+    mock_hit1 = MagicMock()
+    mock_hit1.model_dump.return_value = {"score": 0.9}
+    mock_hit1.payload = {
+        "main_category": "Books",
+        "title": "Test Book 1",
+        "average_rating": 4.5,
+        "rating_number": 100,
+        "image_url": "http://example.com/image1.jpg",
+        "parent_asin": "item1",  # This should be included
+    }
+
+    mock_hit2 = MagicMock()
+    mock_hit2.model_dump.return_value = {"score": 0.8}
+    mock_hit2.payload = {
+        "main_category": "Books",
+        "title": "Test Book 2",
+        "average_rating": 4.2,
+        "rating_number": 80,
+        "image_url": "http://example.com/image2.jpg",
+        "parent_asin": "item2",  # This should be excluded (in input sequence)
+    }
+
+    mock_hit3 = MagicMock()
+    mock_hit3.model_dump.return_value = {"score": 0.7}
+    mock_hit3.payload = {
+        "main_category": "Books",
+        "title": "Test Book 3",
+        "average_rating": 4.0,
+        "rating_number": 60,
+        "image_url": "http://example.com/image3.jpg",
+        "parent_asin": "item3",  # This should be excluded (in input sequence)
+    }
+
+    mock_hit4 = MagicMock()
+    mock_hit4.model_dump.return_value = {"score": 0.6}
+    mock_hit4.payload = {
+        "main_category": "Books",
+        "title": "Test Book 4",
+        "average_rating": 3.8,
+        "rating_number": 40,
+        "image_url": "http://example.com/image4.jpg",
+        "parent_asin": "item4",  # This should be included
+    }
+
+    mock_services.ann_index.search.return_value = [
+        mock_hit1,
+        mock_hit2,
+        mock_hit3,
+        mock_hit4,
+    ]
+
+    # Create a test context with items in the input sequence
+    ctx = RetrieveContext(
+        user_ids_raw=["user1"],
+        item_seq_raw=[["item2", "item3"]],  # These should be excluded
+        candidate_items_raw=[],
+    )
+
+    # Patch the collection_name in the service call
+    with patch.object(
+        mock_cfg.vectorstore.qdrant, "collection_name", "test_collection"
+    ):
+        result = await recommendation_service.retrieve_recommendations(ctx, 2)
+
+        # Verify that items from input sequence were excluded
+        assert len(result.recommendations) == 2
+        recommendation_ids = [item.parent_asin for item in result.recommendations]
+
+        # Should include item1 and item4, but not item2 or item3
+        assert "item2" not in recommendation_ids
+        assert "item3" not in recommendation_ids
+        assert "item1" in recommendation_ids
+        assert "item4" in recommendation_ids
+
+        # Verify that we requested more than needed since we'll filter some out
+        mock_services.ann_index.search.assert_called_once()
+        call_args = mock_services.ann_index.search.call_args[1]
+        assert call_args["limit"] > 2  # Should request more than needed
+
+
+@pytest.mark.asyncio
+async def test_retrieve_recommendations_exclude_both_prev_and_input(
+    recommendation_service, mock_services, mock_cfg
+):
+    """Test that items from both user's previous interactions and input sequence are excluded."""
+    # Mock the call_seq_retriever method
+    recommendation_service.call_seq_retriever = AsyncMock()
+    recommendation_service.call_seq_retriever.return_value.result = {
+        "query_embedding": [[0.1, 0.2, 0.3]]
+    }
+    recommendation_service.call_seq_retriever.return_value.debug_info = []
+
+    # Mock user's previous interactions
+    user_prev_interactions = ["item1", "item2"]
+    recommendation_service.get_user_prev_interactions = MagicMock()
+    recommendation_service.get_user_prev_interactions.return_value = {
+        "recent_interactions": user_prev_interactions
+    }
+
+    # Create mock hits
+    mock_hit1 = MagicMock()
+    mock_hit1.model_dump.return_value = {"score": 0.9}
+    mock_hit1.payload = {
+        "main_category": "Books",
+        "title": "Test Book 1",
+        "average_rating": 4.5,
+        "rating_number": 100,
+        "image_url": "http://example.com/image1.jpg",
+        "parent_asin": "item1",  # This should be excluded (previous interaction)
+    }
+
+    mock_hit2 = MagicMock()
+    mock_hit2.model_dump.return_value = {"score": 0.8}
+    mock_hit2.payload = {
+        "main_category": "Books",
+        "title": "Test Book 2",
+        "average_rating": 4.2,
+        "rating_number": 80,
+        "image_url": "http://example.com/image2.jpg",
+        "parent_asin": "item2",  # This should be excluded (previous interaction)
+    }
+
+    mock_hit3 = MagicMock()
+    mock_hit3.model_dump.return_value = {"score": 0.7}
+    mock_hit3.payload = {
+        "main_category": "Books",
+        "title": "Test Book 3",
+        "average_rating": 4.0,
+        "rating_number": 60,
+        "image_url": "http://example.com/image3.jpg",
+        "parent_asin": "item3",  # This should be excluded (in input sequence)
+    }
+
+    mock_hit4 = MagicMock()
+    mock_hit4.model_dump.return_value = {"score": 0.6}
+    mock_hit4.payload = {
+        "main_category": "Books",
+        "title": "Test Book 4",
+        "average_rating": 3.8,
+        "rating_number": 40,
+        "image_url": "http://example.com/image4.jpg",
+        "parent_asin": "item4",  # This should be included
+    }
+
+    mock_hit5 = MagicMock()
+    mock_hit5.model_dump.return_value = {"score": 0.5}
+    mock_hit5.payload = {
+        "main_category": "Books",
+        "title": "Test Book 5",
+        "average_rating": 3.5,
+        "rating_number": 30,
+        "image_url": "http://example.com/image5.jpg",
+        "parent_asin": "item5",  # This should be included
+    }
+
+    mock_services.ann_index.search.return_value = [
+        mock_hit1,
+        mock_hit2,
+        mock_hit3,
+        mock_hit4,
+        mock_hit5,
+    ]
+
+    # Create a test context with a user ID and input sequence
+    ctx = RetrieveContext(
+        user_ids_raw=["user1"],
+        item_seq_raw=[["item3"]],  # Item3 should be excluded
+        candidate_items_raw=[],
+    )
+
+    # Patch the collection_name in the service call
+    with patch.object(
+        mock_cfg.vectorstore.qdrant, "collection_name", "test_collection"
+    ):
+        result = await recommendation_service.retrieve_recommendations(ctx, 2)
+
+        # Verify that items from both user's previous interactions and input sequence were excluded
+        assert len(result.recommendations) == 2
+        recommendation_ids = [item.parent_asin for item in result.recommendations]
+
+        # Should include item4 and item5, but not item1, item2, or item3
+        assert "item1" not in recommendation_ids
+        assert "item2" not in recommendation_ids
+        assert "item3" not in recommendation_ids
+        assert "item4" in recommendation_ids
+        assert "item5" in recommendation_ids
+
+        # Verify that we requested more recommendations than needed
+        mock_services.ann_index.search.assert_called_once()
+        call_args = mock_services.ann_index.search.call_args[1]
+        assert call_args["limit"] > 2  # Should request more than needed
