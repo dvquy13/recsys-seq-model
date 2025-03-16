@@ -24,15 +24,18 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 async for chunk in response.body_iterator:
                     response_body += chunk
                 response_json = json.loads(response_body.decode("utf-8"))
-                if "metadata" in response_json:
-                    response_json["metadata"]["rec_id"] = rec_id
-                else:
-                    response_json["metadata"] = {"rec_id": rec_id}
+
+                # Initialize metadata if it doesn't exist or is None
+                if "metadata" not in response_json or response_json["metadata"] is None:
+                    response_json["metadata"] = {}
+
+                # Now we can safely assign to metadata
+                response_json["metadata"]["rec_id"] = rec_id
 
                 modified_response = json.dumps(response_json).encode("utf-8")
                 response.headers["Content-Length"] = str(len(modified_response))
                 return Response(
-                    content=json.dumps(response_json).encode("utf-8"),
+                    content=modified_response,
                     status_code=response.status_code,
                     headers=dict(response.headers),
                     media_type=response.media_type,
