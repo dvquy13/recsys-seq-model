@@ -24,8 +24,8 @@ export function RecommendationCard({
   
   return (
     <Link href={`${linkPrefix}/${recommendation.parent_asin}`}>
-      <Card className={`${className} h-[200px]`}>
-        <div className="flex gap-4 h-full">
+      <Card className={className}>
+        <div className="flex gap-4">
           <div className="flex-shrink-0" style={{ width: 96, height: 144 }}>
             <BookCover
               title={recommendation.title}
@@ -77,8 +77,6 @@ export function RecommendationCard({
                 )}
               </div>
             </div>
-            
-            <div className="flex-grow"></div>
           </div>
         </div>
       </Card>

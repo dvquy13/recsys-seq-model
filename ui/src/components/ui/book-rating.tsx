@@ -47,7 +47,7 @@ export function BookRating({
   const fillSteps = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90];
   
   // Primary color for stars
-  const primaryColor = '#0057a3';
+  const primaryColor = 'var(--color-primary)';
 
   // Create an array of stars with more granular fill
   const stars = Array.from({ length: maxStars }, (_, i) => {

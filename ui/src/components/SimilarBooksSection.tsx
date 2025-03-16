@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { recommendationsApi } from '@/lib/api';
 import { RecommendationsGrid } from '@/components/RecommendationsGrid';
 import type { Recommendation } from '@/types/api';
+import { Loader2 } from 'lucide-react';
 
 interface SimilarBooksSectionProps {
   bookId: string;
@@ -45,7 +46,11 @@ export function SimilarBooksSection({ bookId }: SimilarBooksSectionProps) {
   }, [bookId]);
 
   if (loading) {
-    return <div className="mt-6 text-center">Loading similar books...</div>;
+    return (
+      <div className="mt-6 flex justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" data-testid="loading-spinner" />
+      </div>
+    );
   }
 
   if (error) {

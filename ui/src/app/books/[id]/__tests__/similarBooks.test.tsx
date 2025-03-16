@@ -16,6 +16,7 @@ jest.mock('@/lib/api', () => ({
 jest.mock('lucide-react', () => ({
   Star: () => <span data-testid="star-icon">★</span>,
   StarHalf: () => <span data-testid="star-half-icon">★</span>,
+  Loader2: () => <span data-testid="loading-spinner">Loading...</span>,
 }));
 
 // Mock the RecommendationsGrid component
@@ -114,7 +115,8 @@ describe('SimilarBooksSection', () => {
 
     render(<SimilarBooksSection bookId="B001234ABC" />);
     
-    expect(screen.getByText('Loading similar books...')).toBeInTheDocument();
+    // Check for loading spinner instead of text
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
   });
 
   it('should render recommendations when loaded successfully', async () => {
@@ -160,7 +162,7 @@ describe('SimilarBooksSection', () => {
     
     // Wait for loading to finish
     await waitFor(() => {
-      expect(screen.queryByText('Loading similar books...')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
     });
     
     // Should not render the recommendations grid
@@ -193,6 +195,6 @@ describe('SimilarBooksSection', () => {
       expect(recommendationsApi.getRecommendations).not.toHaveBeenCalled();
     });
     
-    expect(screen.queryByText('Loading similar books...')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
   });
 }); 

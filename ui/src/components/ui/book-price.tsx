@@ -26,7 +26,7 @@ export function BookPrice({
   const sizeClass = config[size];
   
   // Check if the book is free
-  const isFree = price === "0.0" || price === "0" || parseFloat(price) === 0;
+  const isFree = price === "0.0" || price === "0" || price === "None" || price === null || parseFloat(price) === 0;
   
   return (
     <Badge 
