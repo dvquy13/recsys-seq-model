@@ -634,3 +634,61 @@ async def test_retrieve_recommendations_exclude_both_prev_and_input(
         mock_services.ann_index.search.assert_called_once()
         call_args = mock_services.ann_index.search.call_args[1]
         assert call_args["limit"] > 2  # Should request more than needed
+
+
+@pytest.mark.asyncio
+async def test_search_items_by_title(recommendation_service, mock_services, mock_cfg):
+    """Test the search_items_by_title method."""
+    # Setup mock return value for scroll
+    mock_hit1 = MagicMock()
+    mock_hit1.payload = {
+        "main_category": "Books",
+        "title": "Harry Potter and the Philosopher's Stone",
+        "average_rating": 4.7,
+        "rating_number": 5000,
+        "image_url": "http://example.com/harry_potter.jpg",
+        "parent_asin": "asin1001",
+    }
+
+    mock_hit2 = MagicMock()
+    mock_hit2.payload = {
+        "main_category": "Books",
+        "title": "Harry Potter and the Chamber of Secrets",
+        "average_rating": 4.6,
+        "rating_number": 4800,
+        "image_url": "http://example.com/harry_potter2.jpg",
+        "parent_asin": "asin1002",
+    }
+
+    # Mock the scroll method to return our test data
+    mock_services.ann_index.scroll.return_value = ([mock_hit1, mock_hit2], None)
+
+    # Call the method with a search query
+    response = await recommendation_service.search_items_by_title("Harry Potter", 10)
+
+    # Check that the method called scroll with the correct parameters
+    mock_services.ann_index.scroll.assert_called_once()
+    args, kwargs = mock_services.ann_index.scroll.call_args
+    # Use the real collection name from the loaded config instead of expecting test_collection
+    assert "collection_name" in kwargs
+    assert kwargs["limit"] == 10
+    assert kwargs["with_payload"] is True
+
+    # Check filter contains correct case-insensitive text match
+    filter_arg = kwargs.get("scroll_filter")
+    assert len(filter_arg.must) == 1
+    assert filter_arg.must[0].key == "title"
+    assert filter_arg.must[0].match.text == "Harry Potter"
+    # MatchText in this version does not support case_sensitive parameter
+
+    # Check the response structure
+    assert len(response.items) == 2
+    assert response.items[0].title == "Harry Potter and the Philosopher's Stone"
+    assert response.items[0].score == 1.0
+    assert response.items[1].title == "Harry Potter and the Chamber of Secrets"
+    assert response.items[1].score == 1.0
+
+    # Check debug info
+    assert len(response.debug_info) == 2
+    assert "Title search query: Harry Potter" in response.debug_info
+    assert "Results count: 2" in response.debug_info

@@ -19,6 +19,8 @@ from .models import (
     ItemsByIdsResponse,
     PopularItemsRequest,
     RecommendationResponse,
+    SearchByTitleRequest,
+    SearchByTitleResponse,
     SeqRetrieverRequest,
     SeqRetrieverResponse,
 )
@@ -151,3 +153,19 @@ async def get_items_by_ids(
     Retrieve items by their IDs. The IDs will be mapped to indices before querying the vector store.
     """
     return await rec_service.get_items_by_ids(request.item_ids)
+
+
+@app.post(
+    "/items/search_by_title",
+    summary="Search items by title",
+    response_model=SearchByTitleResponse,
+)
+@debug_logging_decorator
+async def search_items_by_title(
+    request: SearchByTitleRequest,
+    rec_service: RecommendationService = Depends(get_recommendation_service),
+):
+    """
+    Search for items by title. Performs a case-insensitive partial text match on the title field.
+    """
+    return await rec_service.search_items_by_title(request.query, request.limit)

@@ -1,3 +1,6 @@
+from unittest.mock import AsyncMock
+
+from api.models import RecommendationItem, SearchByTitleResponse
 from src.dto import RetrieveContext
 
 
@@ -148,3 +151,93 @@ def test_seq_retriever(client, mock_recommendation_service):
     assert call_args[0].item_seq_raw == [["item1", "item2"]]
     assert call_args[0].candidate_items_raw == ["item3", "item4"]
     assert call_args[1] == "get_query_embeddings"
+
+
+def test_search_items_by_title(client, mock_recommendation_service):
+    """Test the search by title endpoint."""
+    # Mock the response for search_items_by_title
+    search_response = SearchByTitleResponse(
+        items=[
+            RecommendationItem(
+                score=1.0,
+                main_category="Books",
+                title="Harry Potter and the Philosopher's Stone",
+                average_rating=4.7,
+                rating_number=5000,
+                image_url="http://example.com/harry_potter.jpg",
+                parent_asin="asin1001",
+            ),
+            RecommendationItem(
+                score=1.0,
+                main_category="Books",
+                title="Harry Potter and the Chamber of Secrets",
+                average_rating=4.6,
+                rating_number=4800,
+                image_url="http://example.com/harry_potter2.jpg",
+                parent_asin="asin1002",
+            ),
+        ],
+        debug_info=["Title search query: Harry Potter", "Results count: 2"],
+    )
+    mock_recommendation_service.search_items_by_title = AsyncMock(
+        return_value=search_response
+    )
+
+    # Call the endpoint
+    response = client.post(
+        "/items/search_by_title", json={"query": "Harry Potter", "limit": 10}
+    )
+
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check that the response has the expected structure
+    assert "items" in data
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Harry Potter and the Philosopher's Stone"
+    assert data["items"][1]["title"] == "Harry Potter and the Chamber of Secrets"
+
+    # Check that the debug info is included
+    assert "debug_info" in data
+    assert len(data["debug_info"]) == 2
+
+    # Check that the service was called with correct parameters
+    mock_recommendation_service.search_items_by_title.assert_called_once_with(
+        "Harry Potter", 10
+    )
+
+
+def test_search_items_by_title_with_custom_limit(client, mock_recommendation_service):
+    """Test the search by title endpoint with a custom limit."""
+    # Mock the response for search_items_by_title
+    search_response = SearchByTitleResponse(
+        items=[
+            RecommendationItem(
+                score=1.0,
+                main_category="Books",
+                title="Harry Potter and the Philosopher's Stone",
+                average_rating=4.7,
+                rating_number=5000,
+                image_url="http://example.com/harry_potter.jpg",
+                parent_asin="asin1001",
+            ),
+        ],
+        debug_info=["Title search query: Harry Potter", "Results count: 1"],
+    )
+    mock_recommendation_service.search_items_by_title = AsyncMock(
+        return_value=search_response
+    )
+
+    # Call the endpoint with a custom limit
+    response = client.post(
+        "/items/search_by_title", json={"query": "Harry Potter", "limit": 1}
+    )
+
+    # Check response
+    assert response.status_code == 200
+
+    # Check that the service was called with the custom limit
+    mock_recommendation_service.search_items_by_title.assert_called_once_with(
+        "Harry Potter", 1
+    )

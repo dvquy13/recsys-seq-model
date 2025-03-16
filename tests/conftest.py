@@ -43,6 +43,7 @@ with (
         ItemsByIdsResponse,
         RecommendationItem,
         RecommendationResponse,
+        SearchByTitleResponse,
         SeqRetrieverResponse,
     )
 
@@ -92,6 +93,29 @@ def mock_qdrant_client():
 
     mock_client.search.return_value = [mock_hit1, mock_hit2]
     mock_client.retrieve.return_value = [mock_hit1, mock_hit2]
+
+    # Mock scroll results for text search
+    mock_scroll_hit1 = MagicMock()
+    mock_scroll_hit1.payload = {
+        "main_category": "Books",
+        "title": "Harry Potter and the Philosopher's Stone",
+        "average_rating": 4.7,
+        "rating_number": 5000,
+        "image_url": "http://example.com/harry_potter.jpg",
+        "parent_asin": "asin1001",
+    }
+
+    mock_scroll_hit2 = MagicMock()
+    mock_scroll_hit2.payload = {
+        "main_category": "Books",
+        "title": "Harry Potter and the Chamber of Secrets",
+        "average_rating": 4.6,
+        "rating_number": 4800,
+        "image_url": "http://example.com/harry_potter2.jpg",
+        "parent_asin": "asin1002",
+    }
+
+    mock_client.scroll.return_value = ([mock_scroll_hit1, mock_scroll_hit2], None)
 
     return mock_client
 
@@ -179,6 +203,32 @@ def mock_recommendation_service():
         result={"query_embedding": [[0.1, 0.2, 0.3]]}
     )
     mock_service.call_seq_retriever = AsyncMock(return_value=seq_retriever_response)
+
+    # Mock search_items_by_title
+    search_response = SearchByTitleResponse(
+        items=[
+            RecommendationItem(
+                score=1.0,
+                main_category="Books",
+                title="Harry Potter and the Philosopher's Stone",
+                average_rating=4.7,
+                rating_number=5000,
+                image_url="http://example.com/harry_potter.jpg",
+                parent_asin="asin1001",
+            ),
+            RecommendationItem(
+                score=1.0,
+                main_category="Books",
+                title="Harry Potter and the Chamber of Secrets",
+                average_rating=4.6,
+                rating_number=4800,
+                image_url="http://example.com/harry_potter2.jpg",
+                parent_asin="asin1002",
+            ),
+        ],
+        debug_info=["Title search query: Harry Potter", "Results count: 2"],
+    )
+    mock_service.search_items_by_title = AsyncMock(return_value=search_response)
 
     return mock_service
 

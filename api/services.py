@@ -6,11 +6,18 @@ import httpx
 import numpy as np
 from fastapi import HTTPException
 from loguru import logger
+from qdrant_client.http.models import FieldCondition, Filter, MatchText
 
 from src.cfg import ConfigLoader
 from src.dto import RetrieveContext
 
-from .models import ItemsByIdsResponse, RecommendationResponse, SeqRetrieverResponse
+from .models import (
+    ItemsByIdsResponse,
+    RecommendationItem,
+    RecommendationResponse,
+    SearchByTitleResponse,
+    SeqRetrieverResponse,
+)
 
 cfg = ConfigLoader("./cfg/common.yaml")
 
@@ -197,3 +204,52 @@ class RecommendationService:
             error_message = f"[DEBUG] Error connecting to external service: {str(e)}"
             logger.error(error_message)
             raise HTTPException(status_code=500, detail=error_message) from e
+
+    async def search_items_by_title(
+        self, query: str, limit: int
+    ) -> SearchByTitleResponse:
+        """
+        Search for items by title using text matching in Qdrant.
+        """
+        logger.info(f"Searching for items with title containing: {query}")
+
+        # Create a filter for partial text matching on title
+        search_filter = Filter(
+            must=[FieldCondition(key="title", match=MatchText(text=query))]
+        )
+
+        # Use scroll method which is better for pure filtering operations
+        hits, _ = self.services.ann_index.scroll(
+            collection_name=cfg.vectorstore.qdrant.collection_name,
+            scroll_filter=search_filter,
+            limit=limit,
+            with_payload=True,
+        )
+
+        # Format results
+        results = []
+        for hit in hits:
+            payload = hit.payload
+            results.append(
+                RecommendationItem(
+                    score=1.0,  # Default score for text matches
+                    main_category=payload.get("main_category", ""),
+                    title=payload.get("title", ""),
+                    average_rating=payload.get("average_rating", 0.0),
+                    rating_number=payload.get("rating_number", 0),
+                    price=payload.get("price"),
+                    subtitle=payload.get("subtitle"),
+                    image_url=payload.get("image_url", ""),
+                    parent_asin=payload.get("parent_asin", ""),
+                )
+            )
+
+        logger.info(f"Found {len(results)} items matching title search: {query}")
+
+        return SearchByTitleResponse(
+            items=results,
+            debug_info=[
+                f"Title search query: {query}",
+                f"Results count: {len(results)}",
+            ],
+        )

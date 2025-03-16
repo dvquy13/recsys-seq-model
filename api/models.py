@@ -50,3 +50,15 @@ class SeqRetrieverResponse(BaseModel):
     result: Dict[str, Any]
     debug_info: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
+
+
+class SearchByTitleRequest(BaseModel):
+    query: str = Field(..., description="Title search query")
+    limit: int = Field(10, description="Maximum number of results to return")
+    debug: bool = Field(False, description="Enable debug logging")
+
+
+class SearchByTitleResponse(BaseModel):
+    items: List[RecommendationItem]
+    debug_info: Optional[List[str]] = None
+    metadata: Optional[Dict[str, Any]] = None

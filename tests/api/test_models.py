@@ -7,6 +7,8 @@ from api.models import (
     PopularItemsRequest,
     RecommendationItem,
     RecommendationResponse,
+    SearchByTitleRequest,
+    SearchByTitleResponse,
     SeqRetrieverRequest,
     SeqRetrieverResponse,
 )
@@ -232,3 +234,65 @@ def test_seq_retriever_response_model():
 
     assert response.debug_info == ["Debug message 1", "Debug message 2"]
     assert response.metadata == {"request_id": "req123"}
+
+
+def test_search_by_title_request_model():
+    """Test the SearchByTitleRequest model."""
+    # Test with required fields only
+    request = SearchByTitleRequest(query="test query")
+    assert request.query == "test query"
+    assert request.limit == 10  # Default value
+    assert request.debug is False  # Default value
+
+    # Test with all fields
+    request = SearchByTitleRequest(query="test query", limit=5, debug=True)
+    assert request.query == "test query"
+    assert request.limit == 5
+    assert request.debug is True
+
+    # Test validation error when query is missing
+    with pytest.raises(ValidationError):
+        SearchByTitleRequest()
+
+
+def test_search_by_title_response_model():
+    """Test the SearchByTitleResponse model."""
+    # Test with minimal required fields
+    items = [
+        RecommendationItem(
+            score=0.9,
+            main_category="Books",
+            title="Test Book 1",
+            average_rating=4.5,
+            rating_number=100,
+            image_url="http://example.com/image1.jpg",
+            parent_asin="asin1",
+        ),
+        RecommendationItem(
+            score=0.8,
+            main_category="Books",
+            title="Test Book 2",
+            average_rating=4.2,
+            rating_number=80,
+            image_url="http://example.com/image2.jpg",
+            parent_asin="asin2",
+        ),
+    ]
+
+    response = SearchByTitleResponse(items=items)
+    assert len(response.items) == 2
+    assert response.items[0].title == "Test Book 1"
+    assert response.items[0].score == 0.9
+    assert response.items[1].title == "Test Book 2"
+    assert response.items[1].score == 0.8
+    assert response.debug_info is None
+    assert response.metadata is None
+
+    # Test with debug_info and metadata
+    debug_info = ["Test debug info"]
+    metadata = {"test_key": "test_value"}
+    response = SearchByTitleResponse(
+        items=items, debug_info=debug_info, metadata=metadata
+    )
+    assert response.debug_info == debug_info
+    assert response.metadata == metadata
