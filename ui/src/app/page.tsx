@@ -11,7 +11,6 @@ import { recommendationsApi } from "@/lib/api"
 import { Container, Wrapper } from "@/components/ui/container"
 import { RecommendationsGrid } from "@/components/RecommendationsGrid"
 import { RecentlyViewedGrid } from "@/components/RecentlyViewedGrid"
-import { SearchBar } from "@/components/SearchBar"
 import { clearRecentlyViewedBooks } from "@/lib/recentlyViewed"
 import { 
   getCachedPersonalizedRecs, 
@@ -90,9 +89,6 @@ export default function Home() {
   return (
     <Container className="py-6">
       <Wrapper className="p-0">
-        {/* Add SearchBar above the User ID Lookup Card */}
-        <SearchBar />
-        
         <Card>
           <CardHeader>
             <CardTitle>User Lookup</CardTitle>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import Link from 'next/link'
 import { BookCover } from '@/components/book-covers'
 import { getConfig } from '@/lib/config'
+import { usePathname } from 'next/navigation'
 
 // TODO: Using Shadcn UI Command component
 // Currently I couldn't get it to work, typing something leads to nothing shown up
@@ -30,7 +31,13 @@ export function SearchBar() {
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const bookCoverImplementation = getConfig('ui', 'bookCoverImplementation')
+  const pathname = usePathname()
   
+  // Reset state when route changes
+  useEffect(() => {
+    setIsOpen(false)
+  }, [pathname])
+
   // Handle clicks outside to close the results
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -120,6 +127,11 @@ export function SearchBar() {
     }
   }
 
+  // Function to handle result click
+  const handleResultClick = () => {
+    setIsOpen(false)
+  }
+
   return (
     <div className="w-full max-w-lg mx-auto my-6" ref={containerRef}>
       <div className="relative">
@@ -164,6 +176,7 @@ export function SearchBar() {
                       key={`${item.id}-${index}`}
                       href={getBookUrl(item)}
                       className="flex items-center gap-3 px-2 py-2 text-sm rounded-md hover:bg-gray-100 cursor-pointer"
+                      onClick={handleResultClick}
                     >
                       {/* Book cover image with custom styling to override rounded corners */}
                       <div className="flex-shrink-0" style={{ width: 30, height: 45 }}>
