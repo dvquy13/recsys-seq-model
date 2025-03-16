@@ -46,7 +46,7 @@ export async function getBookDetails(bookId: string) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([bookId]),
+    body: JSON.stringify({ item_ids: [bookId], "debug": false }),
   });
 
   if (!response.ok) {

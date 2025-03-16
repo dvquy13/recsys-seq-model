@@ -35,8 +35,11 @@ api-logs:
 api-down:
 	docker compose -f compose.api.yml down
 
-test:
+api-test:
 	./tests/run_tests.sh
+
+ui-test:
+	cd ui && npm test && cd ..
 
 lint:
 	uv run ruff check .
