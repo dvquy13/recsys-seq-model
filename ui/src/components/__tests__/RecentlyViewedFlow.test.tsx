@@ -4,6 +4,7 @@ import { RecentlyViewedGrid } from '../RecentlyViewedGrid';
 import { addRecentlyViewedBook, getRecentlyViewedBooks } from '@/lib/recentlyViewed';
 import { updatePersonalizedRecs } from '@/lib/personalizedRecs';
 import type { Recommendation } from '@/types/api';
+import { MAX_DISPLAY_ITEMS } from '@/lib/config/recentlyViewed';
 
 // Mock the dependencies
 jest.mock('@/lib/recentlyViewed', () => ({
@@ -151,13 +152,14 @@ describe('Recently Viewed Flow', () => {
     expect(updatePersonalizedRecs).toHaveBeenCalledWith(testUserId);
   });
 
-  it('should limit recently viewed books display', async () => {
-    // Create multiple books
-    const books = Array.from({ length: 5 }, (_, i) => ({
+  it('should limit recently viewed books display based on MAX_DISPLAY_ITEMS', async () => {
+    // Create more books than the display limit
+    const totalBooks = MAX_DISPLAY_ITEMS + 2; // Create 2 extra books beyond the limit
+    const books = Array.from({ length: totalBooks }, (_, i) => ({
       ...mockBook,
       parent_asin: `B00${i}BOOK`,
       title: `Test Book ${i + 1}`,
-      viewedAt: Date.now() + i * 1000
+      viewedAt: Date.now() + i * 1000 // Most recent books have higher timestamps
     }));
 
     // Mock getRecentlyViewedBooks to return all books
@@ -168,11 +170,16 @@ describe('Recently Viewed Flow', () => {
       render(<RecentlyViewedGrid />);
     });
 
-    // Verify only the first 3 books are displayed (MAX_DISPLAY_ITEMS = 3)
-    expect(screen.getByText('Test Book 5')).toBeInTheDocument();
-    expect(screen.getByText('Test Book 4')).toBeInTheDocument();
-    expect(screen.getByText('Test Book 3')).toBeInTheDocument();
-    expect(screen.queryByText('Test Book 2')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test Book 1')).not.toBeInTheDocument();
+    // Verify the expected number of books are displayed
+    // Books should be displayed in reverse order (newest first)
+    for (let i = 0; i < MAX_DISPLAY_ITEMS; i++) {
+      const bookIndex = totalBooks - i; // Start from the newest book
+      expect(screen.getByText(`Test Book ${bookIndex}`)).toBeInTheDocument();
+    }
+
+    // Verify books beyond the limit are not displayed
+    for (let i = 1; i <= totalBooks - MAX_DISPLAY_ITEMS; i++) {
+      expect(screen.queryByText(`Test Book ${i}`)).not.toBeInTheDocument();
+    }
   });
 }); 

@@ -1,7 +1,7 @@
 import type { Recommendation } from '@/types/api';
+import { MAX_STORAGE_ITEMS } from '@/lib/config/recentlyViewed';
 
 const STORAGE_KEY = 'recently-viewed-books';
-const MAX_ITEMS = 10; // Maximum number of recently viewed books to store
 
 // Custom event name for recently viewed changes
 export const RECENTLY_VIEWED_CHANGE_EVENT = 'recently-viewed-change';
@@ -81,8 +81,8 @@ export function addRecentlyViewedBook(book: Recommendation): void {
     updatedList.unshift(newItem);
     
     // Limit the list to MAX_ITEMS
-    if (updatedList.length > MAX_ITEMS) {
-      updatedList = updatedList.slice(0, MAX_ITEMS);
+    if (updatedList.length > MAX_STORAGE_ITEMS) {
+      updatedList = updatedList.slice(0, MAX_STORAGE_ITEMS);
     }
     
     // Save to localStorage

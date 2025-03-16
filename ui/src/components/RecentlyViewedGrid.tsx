@@ -6,9 +6,7 @@ import {
   type RecentlyViewedBook,
   RECENTLY_VIEWED_CHANGE_EVENT 
 } from '@/lib/recentlyViewed';
-
-// Maximum number of recently viewed items to display
-const MAX_DISPLAY_ITEMS = 3;
+import { MAX_DISPLAY_ITEMS } from '@/lib/config/recentlyViewed';
 
 // Storage key used in recentlyViewed.ts
 const STORAGE_KEY = 'recently-viewed-books';
