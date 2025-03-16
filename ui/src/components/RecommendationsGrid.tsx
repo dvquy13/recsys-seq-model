@@ -16,7 +16,7 @@ export function RecommendationsGrid({
   recommendations,
   emptyMessage = 'No recommendations available',
   className = 'mt-6 space-y-4',
-  gridClassName = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4',
+  gridClassName = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6',
   titleClassName = 'text-lg font-semibold',
 }: RecommendationsGridProps) {
   return (

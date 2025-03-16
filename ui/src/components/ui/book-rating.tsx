@@ -82,13 +82,15 @@ export function BookRating({
 
   return (
     <div className={`flex flex-col ${className}`}>
-      <div className={`flex items-center ${gap}`}>
-        {stars}
-        <span className={`${textSize} ${spacing}`}>
-          {safeRating.toFixed(1)}
-        </span>
-        <span className={`text-muted-foreground ${textSize}`}>
-          ({safeRatingCount.toLocaleString()} ratings)
+      <div className={`flex flex-wrap items-center ${gap}`}>
+        <div className="flex items-center">
+          {stars}
+          <span className={`${textSize} font-medium ${spacing}`}>
+            {safeRating.toFixed(1)}
+          </span>
+        </div>
+        <span className={`text-muted-foreground ${textSize} ml-1`}>
+          ({safeRatingCount.toLocaleString()})
         </span>
       </div>
       

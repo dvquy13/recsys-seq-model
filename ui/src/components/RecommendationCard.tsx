@@ -54,12 +54,15 @@ export function RecommendationCard({
               )}
             </div>
             
-            <div className="mt-2 space-y-2">
-              <BookRating 
-                rating={recommendation.average_rating} 
-                ratingCount={recommendation.rating_number}
-                size="sm"
-              />
+            <div className="mt-2 space-y-2.5">
+              <div className="flex flex-wrap items-center">
+                <BookRating 
+                  rating={recommendation.average_rating} 
+                  ratingCount={recommendation.rating_number}
+                  size="sm"
+                  className="flex-shrink-0 w-full"
+                />
+              </div>
               
               <div className="flex items-center gap-2">
                 <BookPrice 

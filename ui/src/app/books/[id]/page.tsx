@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getBookDetails } from '@/lib/api';
+import { recommendationsApi } from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookCover } from '@/components/book-covers';
@@ -10,6 +11,7 @@ import { RecommendationsGrid } from '@/components/RecommendationsGrid';
 import { BookRating } from '@/components/ui/book-rating';
 import { BookPrice } from '@/components/ui/book-price';
 import { BookViewTracker } from '@/components/BookViewTracker';
+import { SimilarBooksSection } from '@/components/SimilarBooksSection';
 
 interface BookPageProps {
   params: {
@@ -62,10 +64,10 @@ export default async function BookPage({ params }: BookPageProps) {
     const bookCoverImplementation = getConfig('ui', 'bookCoverImplementation');
 
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
         <BookViewTracker book={book} />
         
-        <Card className="max-w-4xl mx-auto">
+        <Card className="mx-auto">
           <CardHeader>
             <div className="flex flex-col md:flex-row gap-8">
               <div className="relative w-full md:w-[300px] h-[400px]">
@@ -89,6 +91,7 @@ export default async function BookPage({ params }: BookPageProps) {
                     rating={book.average_rating || 0} 
                     ratingCount={book.rating_number || 0}
                     size="lg"
+                    className="mt-1"
                   />
                 </div>
                 
@@ -106,15 +109,9 @@ export default async function BookPage({ params }: BookPageProps) {
           <CardContent>
             {/* Additional book details can be added here */}
             
-            {/* This is where future recommendation sections will be added */}
-            {/* Example:
             <div className="mt-8">
-              <RecommendationsGrid 
-                title="Similar Books" 
-                recommendations={similarBooks} 
-              />
+              <SimilarBooksSection bookId={book.parent_asin || bookId} />
             </div>
-            */}
           </CardContent>
         </Card>
       </div>
