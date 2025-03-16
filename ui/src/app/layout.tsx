@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { QueryProvider } from "@/providers/query-provider";
+import { AppStateProvider } from "@/providers/app-state-provider";
 
 export const metadata: Metadata = {
   title: "Book Reco",
@@ -21,8 +22,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <QueryProvider>
-          <Navbar />
-          {children}
+          <AppStateProvider>
+            <Navbar />
+            {children}
+          </AppStateProvider>
         </QueryProvider>
       </body>
     </html>
