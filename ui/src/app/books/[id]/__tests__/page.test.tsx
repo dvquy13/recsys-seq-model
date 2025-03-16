@@ -64,7 +64,7 @@ describe('BookPage', () => {
       (getBookDetails as jest.Mock).mockRejectedValue(new Error('Internal Server Error'));
 
       const component = await BookPage({ params: { id: mockBook.parent_asin } });
-      expect(component).toBeUndefined();
+      expect(component).toBeNull();
       expect(notFound).toHaveBeenCalled();
     });
 
@@ -73,7 +73,7 @@ describe('BookPage', () => {
       (getBookDetails as jest.Mock).mockRejectedValue(new Error('Network Error'));
 
       const component = await BookPage({ params: { id: mockBook.parent_asin } });
-      expect(component).toBeUndefined();
+      expect(component).toBeNull();
       expect(notFound).toHaveBeenCalled();
     });
 

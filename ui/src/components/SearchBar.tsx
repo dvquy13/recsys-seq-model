@@ -8,6 +8,10 @@ import Link from 'next/link'
 import { BookCover } from '@/components/book-covers'
 import { getConfig } from '@/lib/config'
 
+// TODO: Using Shadcn UI Command component
+// Currently I couldn't get it to work, typing something leads to nothing shown up
+// Maybe related issue: https://github.com/shadcn-ui/ui/issues/2652
+
 interface SearchResult {
   id: string
   title: string
@@ -45,6 +49,7 @@ export function SearchBar() {
     async function fetchSearchResults() {
       if (!debouncedSearchQuery.trim()) {
         setSearchResults([])
+        setIsOpen(false)
         return
       }
       
@@ -95,30 +100,24 @@ export function SearchBar() {
     return `/books/${encodeURIComponent(String(item.id))}`
   }
 
-  // Always show results if we have search query
+  // Only show dropdown when actually searching or when we have results
   useEffect(() => {
     if (searchQuery) {
-      setIsOpen(true)
+      setIsOpen(isLoading || searchResults.length > 0)
+    } else {
+      setIsOpen(false)
     }
-  }, [searchQuery])
-
-  // Always show results if we got search results back
-  useEffect(() => {
-    if (searchResults.length > 0) {
-      setIsOpen(true)
-    }
-  }, [searchResults])
+  }, [searchQuery, searchResults, isLoading])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
-    if (e.target.value) {
-      setIsOpen(true)
-    }
   }
 
-  // Handle focus to open the result list
+  // Handle focus - only open if we have something to show
   const handleFocus = () => {
-    setIsOpen(true)
+    if (searchQuery && (isLoading || searchResults.length > 0)) {
+      setIsOpen(true)
+    }
   }
 
   return (
@@ -138,8 +137,8 @@ export function SearchBar() {
           />
         </div>
         
-        {/* Custom dropdown for results */}
-        {isOpen && (
+        {/* Only show dropdown when we have content to display */}
+        {isOpen && (isLoading || searchResults.length > 0) && (
           <div className="absolute z-50 mt-1 w-full bg-white rounded-md border shadow-lg overflow-hidden">
             <div className="max-h-[400px] overflow-y-auto p-1">
               {isLoading && (
