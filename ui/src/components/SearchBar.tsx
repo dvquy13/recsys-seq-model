@@ -1,15 +1,19 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { SearchIcon, Loader2, BookIcon } from 'lucide-react'
+import { SearchIcon, Loader2 } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks/use-debounce'
 import { Input } from "@/components/ui/input"
 import Link from 'next/link'
+import { BookCover } from '@/components/book-covers'
+import { getConfig } from '@/lib/config'
 
 interface SearchResult {
   id: string
   title: string
   parent_asin?: string
+  image_url?: string
+  author?: string
   [key: string]: any
 }
 
@@ -21,6 +25,7 @@ export function SearchBar() {
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const bookCoverImplementation = getConfig('ui', 'bookCoverImplementation')
   
   // Handle clicks outside to close the results
   useEffect(() => {
@@ -136,7 +141,7 @@ export function SearchBar() {
         {/* Custom dropdown for results */}
         {isOpen && (
           <div className="absolute z-50 mt-1 w-full bg-white rounded-md border shadow-lg overflow-hidden">
-            <div className="max-h-[300px] overflow-y-auto p-1">
+            <div className="max-h-[400px] overflow-y-auto p-1">
               {isLoading && (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -159,9 +164,21 @@ export function SearchBar() {
                     <Link
                       key={`${item.id}-${index}`}
                       href={getBookUrl(item)}
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-gray-100 cursor-pointer"
+                      className="flex items-center gap-3 px-2 py-2 text-sm rounded-md hover:bg-gray-100 cursor-pointer"
                     >
-                      <BookIcon className="h-4 w-4 shrink-0" />
+                      {/* Book cover image with custom styling to override rounded corners */}
+                      <div className="flex-shrink-0" style={{ width: 30, height: 45 }}>
+                        <div className="[&>*]:!rounded-none [&>div]:!rounded-none" style={{ width: 30, height: 45 }}>
+                          <BookCover
+                            title={item.title}
+                            imageUrl={item.image_url}
+                            width={30}
+                            height={45}
+                            parent_asin={item.id || item.parent_asin}
+                            implementation={bookCoverImplementation}
+                          />
+                        </div>
+                      </div>
                       <span className="truncate">{item.title || 'Untitled'}</span>
                     </Link>
                   ))}
