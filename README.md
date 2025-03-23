@@ -1,4 +1,6 @@
-# Implement an MVP RecSys
+# Recommendation System based on user real-time behaviors
+
+[Slide](https://docs.google.com/presentation/d/1oER0T9xuR5enRBam7i51DO9NrWX8rwF7ZwDixy7SBVY/edit?usp=sharing)
 
 # Prerequisite
 - uv >= 0.6.3
@@ -12,7 +14,7 @@
 - Run `chmod +x mlflow/wait-for-it.sh` to wait for MLflow to start before creating objects
 
 # Train model
-Run `make ml-platform-up` to start ML supporting services like MLFlow and Qdrant.
+Run `make ml-platform-up` to start ML supporting services like MLFlow and Qdrant. You can check the service logs with `make ml-platform-logs`
 
 Run notebooks in this sequence denoted by the notebook name prefix. For example: 000 -> 001 -> 002...
 
@@ -50,17 +52,15 @@ The main API endpoint is /recs/retrieve, try this request body:
 }
 ```
 
-# Run Tests
-The project includes comprehensive tests for the API. To run the tests:
-
+# Start UI
 ```shell
-# Run tests using the provided script
-make test
-
-# Or run manually
-uv pip install --group testing
-export PYTHONPATH=$(pwd)
-pytest
+make ui-up
 ```
 
-For more details about the tests, see [tests/README.md](tests/README.md).
+# Run Tests
+The project includes comprehensive tests for the API and UI. To run the tests:
+
+```shell
+make api-test
+make ui-test
+```

@@ -41,6 +41,9 @@ api-test:
 ui-test:
 	cd ui && npm test && cd ..
 
+ui-up:
+	cd ui && npm install --legacy-peer-deps && npm run dev
+
 lint:
 	uv run ruff check .
 
