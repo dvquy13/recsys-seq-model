@@ -1,5 +1,8 @@
 # Recommendation System based on user real-time behaviors
 
+# Demo
+![](./static/session-based%20retriever%20-%20demo%20v2.gif)
+
 [Slide](https://docs.google.com/presentation/d/1oER0T9xuR5enRBam7i51DO9NrWX8rwF7ZwDixy7SBVY/edit?usp=sharing)
 
 # Prerequisite
