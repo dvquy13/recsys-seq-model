@@ -1,0 +1,107 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ML Development Patterns & Best Practices
+
+This project follows specific ML development patterns for recommendation systems.
+
+## 🏗️ Model Architecture Patterns
+
+### Factory Pattern for Models
+The project uses a factory pattern in **[src/sequence/model.py](mdc:src/sequence/model.py)** for creating different retriever types:
+
+```python
+@SequenceRetrieverFactory.register_retriever(
+    "TwoTowerSequenceRetriever",
+    params=["num_users", "num_items", "embedding_dim", ...],
+    required=["num_users", "num_items", "embedding_dim"]
+)
+```
+
+### Configuration Management
+- **[src/cfg.py](mdc:src/cfg.py)** provides type-safe configuration with Pydantic
+- Environment variable substitution in YAML configs
+- Hierarchical config structure: `config.data.train_fp`, `config.train.learning_rate`
+
+### Training Infrastructure
+- **[src/sequence/trainer.py](mdc:src/sequence/trainer.py)** - PyTorch Lightning trainer
+- **[src/sequence/inference.py](mdc:src/sequence/inference.py)** - Model inference utilities
+- MLflow integration for experiment tracking
+
+## 🔄 Data Flow Patterns
+
+### ID Mapping Strategy
+**[src/id_mapper.py](mdc:src/id_mapper.py)** handles conversion between:
+- Raw item IDs (e.g., "B00DPM7TIG") ↔ Model indices (0, 1, 2...)
+- Critical for production serving where models expect numeric indices
+
+### Negative Sampling
+**[src/negative_sampling.py](mdc:src/negative_sampling.py)** implements:
+- Random negative sampling for training
+- Popularity-based negative sampling
+- Essential for recommendation model training
+
+### Vector Store Pattern
+**[src/vectorstore.py](mdc:src/vectorstore.py)** abstracts:
+- Item embedding storage in Qdrant
+- Similarity search for candidate retrieval
+- Batch operations for efficiency
+
+## 🧪 Testing Patterns
+
+### Mock Strategy
+**[tests/conftest.py](mdc:tests/conftest.py)** provides comprehensive mocks:
+- Redis client with predefined responses
+- Qdrant search results
+- Model server HTTP responses
+- ID mapper functionality
+
+### Test Structure
+- Separate test files for different layers: endpoints, services, models
+- Use of pytest fixtures for dependency injection
+- Integration tests with full API stack
+
+## 🚀 Deployment Patterns
+
+### Model Serving Architecture
+- **[model_server/](mdc:model_server)** - Dedicated model inference service
+- **[api/](mdc:api)** - API gateway that orchestrates calls
+- Separation of concerns: ML inference vs business logic
+
+### Environment Management
+- **uv** for Python dependency management
+- Docker Compose for multi-service orchestration
+- Environment-specific configurations
+
+### Real-time Serving
+- Redis for caching user sequences and popular items
+- Qdrant for fast similarity search
+- FastAPI for high-performance API serving
+
+## 📊 Evaluation Patterns
+
+### Metrics Integration
+**[src/eval/](mdc:src/eval)** contains evaluation utilities:
+- Offline metrics computation
+- A/B testing framework preparation
+- Model performance monitoring
+
+### Notebook-Driven Development
+Sequential notebook pipeline (**[notebooks/](mdc:notebooks)**):
+1. Data prep → Feature engineering → Model training → Deployment
+2. Papermill for automated notebook execution
+3. Clear separation of exploration vs production code
+
+## 🛠️ Development Workflow
+
+### Code Quality
+- **[.ruff.toml](mdc:.ruff.toml)** - Python linting and formatting
+- Type hints throughout codebase
+- Comprehensive test coverage
+
+### CI/CD Ready
+- **[Makefile](mdc:Makefile)** provides standardized commands
+- Docker-based deployment
+- Clear separation of development vs production dependencies

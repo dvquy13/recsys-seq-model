@@ -1,0 +1,174 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API Development Guide
+
+This guide covers API development patterns for the recommendation system.
+
+## 🏗️ FastAPI Architecture
+
+### Application Structure
+**[api/app.py](mdc:api/app.py)** follows a layered architecture:
+- **Controllers**: FastAPI route handlers
+- **Services**: Business logic in **[api/services.py](mdc:api/services.py)**
+- **Models**: Pydantic schemas in **[api/models.py](mdc:api/models.py)**
+- **Dependencies**: Dependency injection for services
+
+### Dependency Injection Pattern
+```python
+def get_services():
+    return Services()
+
+def get_recommendation_service(services: Services = Depends(get_services)):
+    return RecommendationService(services)
+```
+
+## 🚀 API Endpoints Design
+
+### Main Recommendation Flow
+1. **`POST /recs/retrieve`** - Primary recommendation endpoint
+   - Takes user sequences and returns personalized recommendations
+   - Integrates sequence model + vector search + fallbacks
+
+2. **`GET /recs/popular`** - Fallback for cold start
+   - Returns popular items when personalization isn't possible
+   - Cached in Redis for performance
+
+3. **`POST /vendor/seq_retriever`** - Model server proxy
+   - Abstracts model serving infrastructure
+   - Handles model inference requests
+
+### Supporting Endpoints
+- **`POST /items/get_by_ids`** - Item metadata retrieval
+- **`POST /items/search_by_title`** - Text-based item search
+
+## 🔧 Service Layer Patterns
+
+### Service Architecture
+**[api/services.py](mdc:api/services.py)** implements:
+- **RecommendationService**: Main business logic
+- External service integration (Redis, Qdrant, Model Server)
+- Error handling and fallback strategies
+
+### Data Flow
+1. **Input Validation**: Pydantic models ensure type safety
+2. **ID Mapping**: Convert raw IDs to model indices
+3. **Sequence Processing**: Handle user interaction sequences
+4. **Model Inference**: Call sequence retriever model
+5. **Candidate Retrieval**: Vector search in Qdrant
+6. **Response Assembly**: Format and return results
+
+## 📝 Request/Response Models
+
+### Pydantic Models
+**[api/models.py](mdc:api/models.py)** defines:
+- Request schemas with validation
+- Response schemas with proper typing
+- Nested models for complex data structures
+
+### Key Patterns
+```python
+class RetrieveContext(BaseModel):
+    user_ids_raw: List[str]
+    item_seq_raw: List[List[str]]
+    candidate_items_raw: List[str] = []
+```
+
+## 🧪 Testing Strategy
+
+### Test Structure
+**[tests/api/](mdc:tests/api)** contains:
+- **test_endpoints.py**: Integration tests for API routes
+- **test_services.py**: Unit tests for service layer
+- **test_models.py**: Validation tests for Pydantic models
+
+### Mocking Strategy
+**[tests/conftest.py](mdc:tests/conftest.py)** provides:
+- Redis client mocks with predefined responses
+- Qdrant search result mocks
+- HTTP client mocks for external services
+- ID mapper mocks for testing
+
+### Test Patterns
+```python
+@pytest.fixture
+def mock_redis_client():
+    mock = MagicMock()
+    mock.get.return_value = '["item1", "item2"]'
+    return mock
+```
+
+## 🔄 Configuration Management
+
+### Environment Variables
+- **Redis**: `REDIS_HOST`, `REDIS_PORT`
+- **Qdrant**: `QDRANT_URL`
+- **Model Server**: `SEQ_RETRIEVER_MODEL_SERVER_URL`
+
+### Config Loading
+Uses **[src/cfg.py](mdc:src/cfg.py)** for centralized configuration:
+- YAML-based configuration
+- Environment variable substitution
+- Type-safe access with Pydantic
+
+## 🚀 Middleware & Cross-Cutting Concerns
+
+### Logging
+**[api/logging_utils.py](mdc:api/logging_utils.py)** provides:
+- Request ID tracking for distributed tracing
+- Structured logging with context
+- Debug logging decorator for endpoints
+
+### CORS Configuration
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+## 🐳 Deployment
+
+### Docker Setup
+**[api/Dockerfile](mdc:api/Dockerfile)** implements:
+- Multi-stage builds for optimization
+- Dependency management with uv
+- Production-ready configuration
+
+### Compose Integration
+**[compose.api.yml](mdc:compose.api.yml)** orchestrates:
+- API service deployment
+- Environment variable injection
+- Service networking
+
+## ⚡ Performance Patterns
+
+### Caching Strategy
+- **Redis**: User sequences and popular items
+- **In-memory**: ID mappings and model metadata
+- **Vector Store**: Pre-computed item embeddings
+
+### Async Processing
+- FastAPI native async support
+- Async clients for external services
+- Non-blocking I/O for better throughput
+
+## 🛠️ Development Workflow
+
+### Local Development
+```bash
+make api-up          # Start API service
+make api-logs        # Follow logs
+make api-test        # Run tests
+```
+
+### Code Quality
+- Type hints throughout
+- Pydantic for runtime validation
+- Comprehensive test coverage
+- Automated linting with ruff

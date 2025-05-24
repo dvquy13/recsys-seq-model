@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# RecSys Seq Model Project Structure Guide
+
+This is a real-time recommendation system MVP based on session-based recommendation with sequence modeling.
+
+## 🏗️ Project Architecture
+
+### Core Directories
+- **[src/](mdc:src)** - Main source code with ML logic
+  - **[src/sequence/](mdc:src/sequence)** - Sequence modeling components (models, training, inference)
+  - **[src/cfg.py](mdc:src/cfg.py)** - Centralized configuration management with Pydantic
+  - **[src/id_mapper.py](mdc:src/id_mapper.py)** - Maps between item IDs and indices
+  - **[src/vectorstore.py](mdc:src/vectorstore.py)** - Qdrant vector store operations
+  - **[src/negative_sampling.py](mdc:src/negative_sampling.py)** - Negative sampling for training
+
+- **[api/](mdc:api)** - FastAPI web service
+  - **[api/app.py](mdc:api/app.py)** - Main FastAPI application with endpoints
+  - **[api/services.py](mdc:api/services.py)** - Business logic and service layer
+  - **[api/models.py](mdc:api/models.py)** - Pydantic request/response models
+
+- **[model_server/](mdc:model_server)** - Model serving infrastructure
+- **[ui/](mdc:ui)** - Next.js frontend application
+- **[tests/](mdc:tests)** - Comprehensive test suite with API tests
+- **[notebooks/](mdc:notebooks)** - Jupyter notebooks for ML pipeline (000-021 sequence)
+- **[cfg/](mdc:cfg)** - Configuration files ([cfg/common.yaml](mdc:cfg/common.yaml))
+
+### Key Configuration Files
+- **[pyproject.toml](mdc:pyproject.toml)** - Python dependencies managed with uv
+- **[Makefile](mdc:Makefile)** - Development workflow automation
+- **[compose.yml](mdc:compose.yml)** - ML platform (MLflow, Qdrant, Redis)
+- **[compose.api.yml](mdc:compose.api.yml)** - API service deployment
+
+## 🧠 ML Pipeline Flow
+
+### Training Pipeline (Notebooks Sequence)
+1. **[notebooks/000-prep-data.ipynb](mdc:notebooks/000-prep-data.ipynb)** - Data preparation
+2. **[notebooks/001-features.ipynb](mdc:notebooks/001-features.ipynb)** - Feature engineering
+3. **[notebooks/002-negative-sample.ipynb](mdc:notebooks/002-negative-sample.ipynb)** - Negative sampling
+4. **[notebooks/010-baseline-popular.ipynb](mdc:notebooks/010-baseline-popular.ipynb)** - Popularity baseline
+5. **[notebooks/011-sequence-modeling.ipynb](mdc:notebooks/011-sequence-modeling.ipynb)** - Main sequence model training
+6. **[notebooks/020-ann-index.ipynb](mdc:notebooks/020-ann-index.ipynb)** - Store embeddings in Qdrant
+7. **[notebooks/021-store-user-item-sequence.ipynb](mdc:notebooks/021-store-user-item-sequence.ipynb)** - Store data in Redis
+
+### Model Architecture
+- **Two-Tower Architecture**: User+sequence tower vs Item tower
+- **Sequence Models**: GRU or mean pooling for user interaction sequences
+- **Vector Store**: Qdrant for ANN search of item embeddings
+- **Caching**: Redis for user sequences and popular items
+
+## 🚀 Key API Endpoints
+
+- `POST /recs/retrieve` - Main recommendation endpoint
+- `GET /recs/popular` - Popular items fallback
+- `POST /vendor/seq_retriever` - Model server proxy
+- `POST /items/get_by_ids` - Item metadata retrieval
+- `POST /items/search_by_title` - Text search
+
+## 🛠️ Development Workflow
+
+### Setup
+```bash
+make ml-platform-up    # Start MLflow, Qdrant, Redis
+make requirements-txt  # Generate requirements.txt
+make api-up           # Start API service
+```
+
+### Testing
+```bash
+make api-test         # Run API tests
+make ui-test          # Run UI tests
+make lint             # Code linting
+```
+
+### Training
+```bash
+make train model=TwoTowerSequenceRetriever
+```
+
+## 🧪 Testing Strategy
+
+- **[tests/conftest.py](mdc:tests/conftest.py)** - Test fixtures and mocks
+- **[tests/api/](mdc:tests/api)** - API endpoint tests
+- Mocks Redis, Qdrant, and model server for isolation
+- Coverage includes endpoints, services, and models
+
+## 🔧 Key Technologies
+
+- **ML**: PyTorch Lightning, MLflow for tracking
+- **Backend**: FastAPI, Redis, Qdrant vector DB
+- **Frontend**: Next.js, TypeScript
+- **Infrastructure**: Docker Compose, uv for dependency management
+- **Data**: Amazon Review datasets via HuggingFace

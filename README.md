@@ -4,6 +4,9 @@
 ![](./static/session-based%20retriever%20-%20demo%20v2.gif)
 
 [Slide](https://docs.google.com/presentation/d/1oER0T9xuR5enRBam7i51DO9NrWX8rwF7ZwDixy7SBVY/edit?usp=sharing)
+# Implement an MVP Real-time RecSys based on Session-based Recommendation with Sequence modeling
+
+This is a demo repo that walkthrough the idea of how to build a real-time recommendation system based on the idea that we can personalize recommend based on user's recent behaviors. For demoing purpose and as a shortcut, instead of building streaming pipeline for the real-time events, we assume that we can get the real-time data inside the request payload, which should be straight-forward and very much feasible in practice as well.
 
 # Prerequisite
 - uv >= 0.6.3

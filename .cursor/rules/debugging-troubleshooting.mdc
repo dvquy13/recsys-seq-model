@@ -1,0 +1,201 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Debugging & Troubleshooting Guide
+
+Common issues and debugging strategies for the recommendation system.
+
+## 🔍 Common Issues & Solutions
+
+### ML Model Issues
+
+#### Model Loading Errors
+**Problem**: Model fails to load in production
+**Debug Steps**:
+1. Check **[src/sequence/inference.py](mdc:src/sequence/inference.py)** for model loading logic
+2. Verify model artifacts in MLflow registry
+3. Check model server logs: `make api-logs`
+4. Validate model configuration in **[cfg/common.yaml](mdc:cfg/common.yaml)**
+
+#### Embedding Dimension Mismatches
+**Problem**: Vector dimensions don't match between training and serving
+**Debug Steps**:
+1. Check embedding dimensions in **[src/sequence/model.py](mdc:src/sequence/model.py)**
+2. Verify Qdrant collection schema: inspect via Qdrant dashboard
+3. Compare training config vs serving config
+4. Check **[src/vectorstore.py](mdc:src/vectorstore.py)** for dimension consistency
+
+### API Issues
+
+#### ID Mapping Failures
+**Problem**: Item IDs not found in mapping
+**Debug Steps**:
+1. Check **[src/id_mapper.py](mdc:src/id_mapper.py)** for mapping logic
+2. Verify `idm.json` file exists and is up-to-date
+3. Check if new items need to be added to mapping
+4. Debug with logging: add debug prints in ID conversion
+
+```python
+# Add debug logging in api/services.py
+logger.debug(f"Raw item IDs: {item_ids}")
+logger.debug(f"Mapped indices: {mapped_indices}")
+```
+
+#### Redis Connection Issues
+**Problem**: Redis operations failing
+**Debug Steps**:
+1. Check Redis connectivity: `redis-cli ping`
+2. Verify Redis configuration in **[api/app.py](mdc:api/app.py)**
+3. Check Redis key patterns in **[cfg/common.yaml](mdc:cfg/common.yaml)**
+4. Inspect Redis data: `redis-cli keys "*"`
+
+### Vector Store Issues
+
+#### Qdrant Search Failures
+**Problem**: No search results from Qdrant
+**Debug Steps**:
+1. Check collection exists: Qdrant dashboard at `http://localhost:6333`
+2. Verify vector dimensions match model output
+3. Check search parameters in **[src/vectorstore.py](mdc:src/vectorstore.py)**
+4. Test with raw Qdrant API calls
+
+```python
+# Debug Qdrant search
+from qdrant_client import QdrantClient
+client = QdrantClient(url="http://localhost:6333")
+results = client.search(
+    collection_name="your_collection",
+    query_vector=[...],  # Test vector
+    limit=10
+)
+```
+
+## 🧪 Testing & Debugging
+
+### Test Failures
+**Problem**: Tests failing in **[tests/api/](mdc:tests/api)**
+**Debug Steps**:
+1. Run specific test: `pytest tests/api/test_endpoints.py::test_specific -v`
+2. Check test fixtures in **[tests/conftest.py](mdc:tests/conftest.py)**
+3. Verify mock configurations match actual service interfaces
+4. Add debug prints in test setup
+
+### Mock Issues
+**Problem**: Mocks not behaving as expected
+**Debug Steps**:
+1. Check mock setup in **[tests/conftest.py](mdc:tests/conftest.py)**
+2. Verify mock return values match expected formats
+3. Ensure mock methods are called correctly
+4. Use `pytest --capture=no` to see debug output
+
+## 📊 Performance Debugging
+
+### Slow API Responses
+**Problem**: API endpoints taking too long
+**Debug Steps**:
+1. Add timing logs in **[api/services.py](mdc:api/services.py)**:
+```python
+import time
+start = time.time()
+# ... operation ...
+logger.info(f"Operation took {time.time() - start:.2f}s")
+```
+2. Check Redis cache hit rates
+3. Monitor Qdrant search performance
+4. Profile model inference time
+
+### Memory Issues
+**Problem**: High memory usage or OOM errors
+**Debug Steps**:
+1. Check batch sizes in model inference
+2. Monitor memory usage in model server
+3. Verify vector store memory usage
+4. Check for memory leaks in long-running processes
+
+## 🔧 Development Debugging
+
+### Configuration Issues
+**Problem**: Configuration not loading properly
+**Debug Steps**:
+1. Check **[src/cfg.py](mdc:src/cfg.py)** for configuration loading
+2. Verify environment variables are set: `env | grep REDIS`
+3. Check YAML syntax in **[cfg/common.yaml](mdc:cfg/common.yaml)**
+4. Test config loading in Python shell:
+
+```python
+from src.cfg import ConfigLoader
+cfg = ConfigLoader("./cfg/common.yaml")
+print(cfg.config)
+```
+
+### Docker Issues
+**Problem**: Services not starting in Docker
+**Debug Steps**:
+1. Check container logs: `docker compose logs service_name`
+2. Verify network connectivity between services
+3. Check port bindings and environment variables
+4. Test service health endpoints
+
+### Notebook Issues
+**Problem**: Notebooks failing in pipeline
+**Debug Steps**:
+1. Check notebook execution order (000 → 001 → ...)
+2. Verify data dependencies between notebooks
+3. Check Papermill execution logs
+4. Test notebooks individually in Jupyter
+
+## 🚨 Logging & Monitoring
+
+### Structured Logging
+Use consistent logging patterns throughout:
+```python
+from loguru import logger
+
+# In API endpoints
+logger.info("Processing request", extra={"user_id": user_id, "item_count": len(items)})
+
+# In services
+logger.error("Redis connection failed", extra={"error": str(e), "key": key})
+```
+
+### Request Tracing
+**[api/logging_utils.py](mdc:api/logging_utils.py)** provides request ID tracking:
+- Each request gets unique ID for distributed tracing
+- Use in all log messages for correlation
+- Essential for debugging production issues
+
+### Debug Mode
+Enable debug mode for verbose logging:
+```python
+# In API calls
+/recs/retrieve?debug=true
+```
+
+## 🛠️ Development Tools
+
+### Useful Commands
+```bash
+# Check service health
+make api-logs
+docker compose ps
+
+# Debug Redis
+redis-cli -h localhost -p 6379
+KEYS "*"
+GET "key_name"
+
+# Debug Qdrant
+curl "http://localhost:6333/collections"
+
+# Test API endpoints
+curl -X POST "http://localhost:8000/recs/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{"user_ids_raw": ["test"], "item_seq_raw": [["item1"]]}'
+```
+
+### IDE Debugging
+- Set breakpoints in **[api/services.py](mdc:api/services.py)** for request debugging
+- Use debugger in **[src/sequence/](mdc:src/sequence)** for model issues
+- Debug tests with IDE test runner for better visibility
