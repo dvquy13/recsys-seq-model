@@ -118,6 +118,8 @@ def add_features_to_neg_df(pos_df, neg_df, user_col, timestamp_col, feature_cols
     """
 
     # Create a pseudo timestamp column for negative samples, incrementing by 1 for each user.
+    # This timestamp pseudo column is used as join key to the positive samples, ensuring that each negative
+    # maps to one positive sample and get the positive's features.
     neg_df = neg_df.assign(
         timestamp_pseudo=lambda df: df.groupby(user_col).cumcount() + 1
     )
