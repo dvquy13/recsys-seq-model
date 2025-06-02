@@ -14,7 +14,7 @@ class BaseSequenceRetriever(nn.Module):
         pooling_method: str = "mean",
         dropout: float = 0.2,
         mask_pooling: bool = True,
-        item_embedding: nn.Embedding = None,
+        item_embedding=None,
     ):
         super().__init__()
         self.num_items = num_items

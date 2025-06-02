@@ -59,9 +59,15 @@ The main API endpoint is /recs/retrieve, try this request body:
 ```
 
 # Start UI
-```shell
-make ui-up
-```
+
+**Prerequisites and Setup for UI:**
+
+1. **Node.js and npm**: Install from [nodejs.org](https://nodejs.org) or via package manager:
+   - Ubuntu/Debian: `sudo apt install nodejs npm`
+   - macOS: `brew install node` 
+   - Windows: Download from nodejs.org or use `winget install OpenJS.NodeJS`
+2. **Install UI dependencies**: Navigate to the `ui` directory and run `npm install --legacy-peer-deps`
+3. **Start the UI**: Go back to this root directory and run `make ui-up` to start the development server
 
 # Run Tests
 The project includes comprehensive tests for the API and UI. To run the tests:
