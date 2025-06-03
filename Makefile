@@ -26,7 +26,7 @@ ml-platform-logs:
 lab:
 	uv run jupyter lab --port 8888 --host 0.0.0.0
 
-api-up:
+api-up: ml-platform-up
 	docker compose -f compose.api.yml up -d
 
 api-logs:
@@ -41,7 +41,7 @@ api-test:
 ui-test:
 	cd ui && npm test && cd ..
 
-ui-up:
+ui-up: api-up
 	cd ui && npm install --legacy-peer-deps && npm run dev
 
 lint:
