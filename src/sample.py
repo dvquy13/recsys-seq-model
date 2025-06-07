@@ -146,3 +146,10 @@ class InteractionDataSampler:
         logger.info(f"{len(sample_users)=:,.0f} {len(sample_items)=:,.0f}")
 
         return sample_df, val_sample_df
+
+
+def calc_sparsity(df: pd.DataFrame, user_col: str, item_col: str):
+    """
+    Calculate the sparsity of the interaction dataframe.
+    """
+    return 1 - len(df) / (df[item_col].nunique() * df[user_col].nunique())
